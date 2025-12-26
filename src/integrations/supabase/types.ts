@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      events: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          event_date: string
+          event_type: string
+          family_space_id: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          event_date: string
+          event_type?: string
+          family_space_id: string
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          event_date?: string
+          event_type?: string
+          family_space_id?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_family_space_id_fkey"
+            columns: ["family_space_id"]
+            isOneToOne: false
+            referencedRelation: "family_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_members: {
         Row: {
           birthday: string | null
@@ -105,6 +152,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      projects: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          family_space_id: string
+          id: string
+          progress: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          family_space_id: string
+          id?: string
+          progress?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          family_space_id?: string
+          id?: string
+          progress?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_family_space_id_fkey"
+            columns: ["family_space_id"]
+            isOneToOne: false
+            referencedRelation: "family_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
