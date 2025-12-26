@@ -80,18 +80,27 @@ const WelcomePage = () => {
           />
         </motion.div>
 
-        {/* Title Section */}
+        {/* KNIT Logo */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
+          className="flex justify-center mb-6"
+        >
+          <img 
+            src={knitLogo} 
+            alt="KNIT" 
+            className="h-72 object-contain"
+          />
+        </motion.div>
+
+        {/* Tagline Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
           className="text-center mb-12"
         >
-          <img 
-            src={knitLogo} 
-            alt="KNIT" 
-            className="h-12 object-contain mb-3"
-          />
           <p className="text-muted-foreground text-lg leading-relaxed max-w-[280px]">
             Preserve your family's stories — for today, and for generations.
           </p>
