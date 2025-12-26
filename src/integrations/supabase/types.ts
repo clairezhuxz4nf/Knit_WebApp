@@ -206,6 +206,18 @@ export type Database = {
     }
     Functions: {
       generate_family_code: { Args: never; Returns: string }
+      get_user_family_space_ids: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
+      is_family_admin: {
+        Args: { _family_space_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_family_member: {
+        Args: { _family_space_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
