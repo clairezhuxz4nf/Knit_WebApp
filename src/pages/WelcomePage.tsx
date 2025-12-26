@@ -6,7 +6,7 @@ import CozyButton from "@/components/ui/CozyButton";
 import YarnDecoration from "@/components/ui/YarnDecoration";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import logo from "@/assets/logo.png";
+import yarnHearts from "@/assets/yarn-hearts.png";
 
 const WelcomePage = () => {
   const navigate = useNavigate();
@@ -57,17 +57,25 @@ const WelcomePage = () => {
   return (
     <MobileLayout className="flex flex-col" showPattern>
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        {/* Logo Section */}
+        {/* Yarn Hearts Image */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="mb-8"
+          className="mb-8 relative"
         >
+          {/* Shadow layers */}
+          <div className="absolute inset-0 blur-2xl opacity-30 scale-110">
+            <div className="w-full h-full bg-gradient-to-br from-yarn-rose via-yarn-sage to-yarn-butter rounded-full" />
+          </div>
+          <div className="absolute inset-4 blur-xl opacity-20">
+            <div className="w-full h-full bg-yarn-rose rounded-full" />
+          </div>
+          {/* Main image */}
           <img
-            src={logo}
+            src={yarnHearts}
             alt="Knit - Family Storybook"
-            className="w-48 h-48 object-contain animate-float"
+            className="w-48 h-48 object-contain animate-float relative z-10 drop-shadow-lg"
           />
         </motion.div>
 
