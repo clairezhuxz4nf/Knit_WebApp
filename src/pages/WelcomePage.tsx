@@ -85,7 +85,7 @@ const WelcomePage = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
-          className="flex justify-center -mt-4 -mb-2 relative z-10"
+          className="flex justify-center -mt-4 mb-4 relative z-10"
         >
           <img 
             src={knitLogo} 
