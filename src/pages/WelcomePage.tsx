@@ -1,12 +1,29 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import MobileLayout from "@/components/layout/MobileLayout";
 import CozyButton from "@/components/ui/CozyButton";
 import YarnDecoration from "@/components/ui/YarnDecoration";
+import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.png";
 
 const WelcomePage = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <MobileLayout className="flex items-center justify-center" showPattern>
+        <YarnDecoration variant="ball" color="rose" className="w-12 h-12 animate-pulse-soft" />
+      </MobileLayout>
+    );
+  }
 
   return (
     <MobileLayout className="flex flex-col" showPattern>

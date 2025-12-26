@@ -7,77 +7,128 @@ import Header from "@/components/layout/Header";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyButton from "@/components/ui/CozyButton";
 import YarnDecoration from "@/components/ui/YarnDecoration";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
 
-interface FamilySpace {
-  familyName: string;
-  members: { id: string; name: string; birthday: string }[];
-  selectedEvents: string[];
+interface FamilyMember {
+  id: string;
+  display_name: string | null;
+  birthday: string | null;
+}
+
+interface FamilySpaceData {
+  id: string;
+  name: string;
+  family_code: string;
 }
 
 const FamilySpace = () => {
   const navigate = useNavigate();
-  const [familySpace, setFamilySpace] = useState<FamilySpace | null>(null);
+  const { user, loading } = useAuth();
+  const [familySpace, setFamilySpace] = useState<FamilySpaceData | null>(null);
+  const [members, setMembers] = useState<FamilyMember[]>([]);
   const [activeTab, setActiveTab] = useState<"chronicle" | "projects">("chronicle");
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem("familySpace");
-    if (saved) {
-      setFamilySpace(JSON.parse(saved));
+    if (!loading && !user) {
+      navigate("/auth");
+      return;
     }
-  }, []);
+
+    if (user) {
+      fetchFamilyData();
+    }
+  }, [user, loading, navigate]);
+
+  const fetchFamilyData = async () => {
+    if (!user) return;
+
+    try {
+      // Get family space the user belongs to
+      const { data: memberData, error: memberError } = await supabase
+        .from("family_members")
+        .select("family_space_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (memberError) throw memberError;
+
+      if (!memberData) {
+        // User is not in any family space
+        navigate("/welcome-page");
+        return;
+      }
+
+      // Get family space details
+      const { data: spaceData, error: spaceError } = await supabase
+        .from("family_spaces")
+        .select("*")
+        .eq("id", memberData.family_space_id)
+        .single();
+
+      if (spaceError) throw spaceError;
+      setFamilySpace(spaceData);
+
+      // Get all family members
+      const { data: membersData, error: membersError } = await supabase
+        .from("family_members")
+        .select("id, display_name, birthday")
+        .eq("family_space_id", memberData.family_space_id);
+
+      if (membersError) throw membersError;
+      setMembers(membersData || []);
+    } catch (error) {
+      console.error("Error fetching family data:", error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
 
   const getUpcomingEvents = () => {
-    if (!familySpace) return [];
-
     const events = [];
     const today = new Date();
     const year = today.getFullYear();
 
     // Add member birthdays
-    if (familySpace.selectedEvents.includes("birthday")) {
-      familySpace.members.forEach((member) => {
-        if (member.birthday) {
-          const bday = new Date(member.birthday);
-          const thisYearBday = new Date(year, bday.getMonth(), bday.getDate());
-          if (thisYearBday < today) {
-            thisYearBday.setFullYear(year + 1);
-          }
-          events.push({
-            id: `bday-${member.id}`,
-            title: `${member.name}'s Birthday`,
-            date: thisYearBday,
-            type: "birthday",
-            icon: "🎂",
-          });
+    members.forEach((member) => {
+      if (member.birthday) {
+        const bday = new Date(member.birthday);
+        const thisYearBday = new Date(year, bday.getMonth(), bday.getDate());
+        if (thisYearBday < today) {
+          thisYearBday.setFullYear(year + 1);
         }
-      });
-    }
+        events.push({
+          id: `bday-${member.id}`,
+          title: `${member.display_name || "Family Member"}'s Birthday`,
+          date: thisYearBday,
+          type: "birthday",
+          icon: "🎂",
+        });
+      }
+    });
 
     // Add Christmas
-    if (familySpace.selectedEvents.includes("christmas")) {
-      const christmas = new Date(year, 11, 25);
-      if (christmas < today) christmas.setFullYear(year + 1);
-      events.push({
-        id: "christmas",
-        title: "Christmas",
-        date: christmas,
-        type: "holiday",
-        icon: "🎄",
-      });
-    }
+    const christmas = new Date(year, 11, 25);
+    if (christmas < today) christmas.setFullYear(year + 1);
+    events.push({
+      id: "christmas",
+      title: "Christmas",
+      date: christmas,
+      type: "holiday",
+      icon: "🎄",
+    });
 
-    // Add Lunar New Year (approximate - Jan 29, 2025)
-    if (familySpace.selectedEvents.includes("lunar")) {
-      const lunar = new Date(year + 1, 0, 29);
-      events.push({
-        id: "lunar",
-        title: "Chinese Lunar New Year",
-        date: lunar,
-        type: "holiday",
-        icon: "🧧",
-      });
-    }
+    // Add Lunar New Year
+    const lunar = new Date(year + 1, 0, 29);
+    events.push({
+      id: "lunar",
+      title: "Chinese Lunar New Year",
+      date: lunar,
+      type: "holiday",
+      icon: "🧧",
+    });
 
     return events.sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 5);
   };
@@ -114,10 +165,19 @@ const FamilySpace = () => {
     return diff;
   };
 
+  if (loading || dataLoading) {
+    return (
+      <MobileLayout className="flex items-center justify-center">
+        <YarnDecoration variant="ball" color="rose" className="w-12 h-12 animate-pulse-soft" />
+      </MobileLayout>
+    );
+  }
+
   return (
     <MobileLayout>
       <Header
         showSettings
+        onSettingsClick={() => navigate("/family-settings")}
         rightElement={
           <img src={logo} alt="Knit" className="w-8 h-8 object-contain" />
         }
@@ -130,7 +190,7 @@ const FamilySpace = () => {
           animate={{ opacity: 1, y: 0 }}
         >
           <h1 className="font-display text-2xl font-bold text-foreground">
-            {familySpace?.familyName || "Your Family"} Space
+            {familySpace?.name || "Your Family"} Space
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             Weaving memories together
@@ -240,7 +300,7 @@ const FamilySpace = () => {
                   className="w-12 h-12 mx-auto mb-4 opacity-50"
                 />
                 <p className="text-muted-foreground">
-                  No upcoming events yet. Add family members with birthdays!
+                  No upcoming events yet. Add birthdays in family settings!
                 </p>
               </CozyCard>
             )}
