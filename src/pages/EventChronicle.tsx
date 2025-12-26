@@ -7,52 +7,89 @@ import Header from "@/components/layout/Header";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyButton from "@/components/ui/CozyButton";
 import YarnDecoration from "@/components/ui/YarnDecoration";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import yarnTimelineImg from "@/assets/yarn-timeline.png";
 
-interface FamilySpace {
-  familyName: string;
-  members: { id: string; name: string; birthday: string }[];
-  selectedEvents: string[];
+interface FamilyMember {
+  id: string;
+  display_name: string | null;
+  birthday: string | null;
 }
 
 const EventChronicle = () => {
   const navigate = useNavigate();
-  const [familySpace, setFamilySpace] = useState<FamilySpace | null>(null);
+  const { user, loading } = useAuth();
+  const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem("familySpace");
-    if (saved) {
-      setFamilySpace(JSON.parse(saved));
+    if (!loading && !user) {
+      navigate("/auth");
+      return;
     }
-  }, []);
+
+    if (user) {
+      fetchFamilyMembers();
+    }
+  }, [user, loading, navigate]);
+
+  const fetchFamilyMembers = async () => {
+    if (!user) return;
+
+    try {
+      // Get family space the user belongs to
+      const { data: memberData, error: memberError } = await supabase
+        .from("family_members")
+        .select("family_space_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (memberError) throw memberError;
+
+      if (!memberData) {
+        navigate("/welcome-page");
+        return;
+      }
+
+      // Get all family members with birthdays
+      const { data: membersData, error: membersError } = await supabase
+        .from("family_members")
+        .select("id, display_name, birthday")
+        .eq("family_space_id", memberData.family_space_id);
+
+      if (membersError) throw membersError;
+      setMembers(membersData || []);
+    } catch (error) {
+      console.error("Error fetching family members:", error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
 
   const getAllEvents = () => {
-    if (!familySpace) return [];
-
     const events = [];
     const today = new Date();
     const year = today.getFullYear();
 
-    // Add member birthdays
-    if (familySpace.selectedEvents.includes("birthday")) {
-      familySpace.members.forEach((member) => {
-        if (member.birthday) {
-          const bday = new Date(member.birthday);
-          const thisYearBday = new Date(year, bday.getMonth(), bday.getDate());
-          if (thisYearBday < today) {
-            thisYearBday.setFullYear(year + 1);
-          }
-          events.push({
-            id: `bday-${member.id}`,
-            title: `${member.name}'s Birthday`,
-            date: thisYearBday,
-            type: "birthday",
-            icon: "🎂",
-            color: "rose" as const,
-          });
+    // Add member birthdays from database
+    members.forEach((member) => {
+      if (member.birthday) {
+        const bday = new Date(member.birthday);
+        const thisYearBday = new Date(year, bday.getMonth(), bday.getDate());
+        if (thisYearBday < today) {
+          thisYearBday.setFullYear(year + 1);
         }
-      });
-    }
+        events.push({
+          id: `bday-${member.id}`,
+          title: `${member.display_name || "Family Member"}'s Birthday`,
+          date: thisYearBday,
+          type: "birthday",
+          icon: "🎂",
+          color: "rose" as const,
+        });
+      }
+    });
 
     // Add holidays
     const holidays = [
@@ -64,20 +101,18 @@ const EventChronicle = () => {
     ];
 
     holidays.forEach((holiday) => {
-      if (familySpace.selectedEvents.includes(holiday.id)) {
-        let holidayDate = new Date(year, holiday.month, holiday.day);
-        if (holidayDate < today) {
-          holidayDate = new Date(year + 1, holiday.month, holiday.day);
-        }
-        events.push({
-          id: holiday.id,
-          title: holiday.title,
-          date: holidayDate,
-          type: "holiday",
-          icon: holiday.icon,
-          color: holiday.color,
-        });
+      let holidayDate = new Date(year, holiday.month, holiday.day);
+      if (holidayDate < today) {
+        holidayDate = new Date(year + 1, holiday.month, holiday.day);
       }
+      events.push({
+        id: holiday.id,
+        title: holiday.title,
+        date: holidayDate,
+        type: "holiday",
+        icon: holiday.icon,
+        color: holiday.color,
+      });
     });
 
     return events.sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -99,6 +134,14 @@ const EventChronicle = () => {
   };
 
   const events = getAllEvents();
+
+  if (loading || dataLoading) {
+    return (
+      <MobileLayout className="flex items-center justify-center" showPattern>
+        <YarnDecoration variant="ball" color="rose" className="w-12 h-12 animate-pulse-soft" />
+      </MobileLayout>
+    );
+  }
 
   return (
     <MobileLayout showPattern>
@@ -229,13 +272,13 @@ const EventChronicle = () => {
               No Events Yet
             </h3>
             <p className="text-muted-foreground text-sm mb-6">
-              Add family members and select events to celebrate
+              Add family members with birthdays in the settings
             </p>
             <CozyButton
               variant="primary"
-              onClick={() => navigate("/create-family-space")}
+              onClick={() => navigate("/family-settings")}
             >
-              Setup Family Space
+              Go to Settings
             </CozyButton>
           </CozyCard>
         )}

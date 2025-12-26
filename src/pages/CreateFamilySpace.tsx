@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, Calendar, Mail, MessageCircle, Check } from "lucide-react";
@@ -8,6 +8,9 @@ import CozyButton from "@/components/ui/CozyButton";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyInput from "@/components/ui/CozyInput";
 import YarnDecoration from "@/components/ui/YarnDecoration";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface FamilyMember {
   id: string;
@@ -26,6 +29,8 @@ const bigEvents = [
 
 const CreateFamilySpace = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [familyName, setFamilyName] = useState("");
   const [members, setMembers] = useState<FamilyMember[]>([
@@ -36,6 +41,13 @@ const CreateFamilySpace = () => {
   const [selectedEvents, setSelectedEvents] = useState<string[]>(["birthday"]);
   const [inviteMethod, setInviteMethod] = useState<"sms" | "email">("email");
   const [inviteContact, setInviteContact] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
 
   const addMember = () => {
     setMembers([
@@ -64,22 +76,74 @@ const CreateFamilySpace = () => {
     );
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < 4) {
       setStep(step + 1);
     } else {
-      // Save to local storage for demo
-      localStorage.setItem(
-        "familySpace",
-        JSON.stringify({
-          familyName,
-          members,
-          ethnicGroup,
-          cultureBackground,
-          selectedEvents,
+      await createFamilySpace();
+    }
+  };
+
+  const createFamilySpace = async () => {
+    if (!user) return;
+
+    setIsSubmitting(true);
+    try {
+      // Generate a unique 6-digit family code
+      const { data: codeData, error: codeError } = await supabase
+        .rpc("generate_family_code");
+
+      if (codeError) throw codeError;
+
+      const familyCode = codeData;
+
+      // Create the family space
+      const { data: spaceData, error: spaceError } = await supabase
+        .from("family_spaces")
+        .insert({
+          name: familyName,
+          family_code: familyCode,
+          created_by: user.id,
         })
-      );
+        .select()
+        .single();
+
+      if (spaceError) throw spaceError;
+
+      // Get user's profile for display name
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      // Add the creator as an admin member
+      const { error: memberError } = await supabase
+        .from("family_members")
+        .insert({
+          family_space_id: spaceData.id,
+          user_id: user.id,
+          display_name: profileData?.display_name || null,
+          is_admin: true,
+        });
+
+      if (memberError) throw memberError;
+
+      toast({
+        title: "Family Space Created!",
+        description: `Your family code is: ${familyCode}`,
+      });
+
       navigate("/family-space");
+    } catch (error: any) {
+      console.error("Error creating family space:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create family space. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -312,7 +376,7 @@ const CreateFamilySpace = () => {
             />
 
             <p className="text-sm text-muted-foreground text-center">
-              You can always invite more members later
+              You can always invite more members later using the family code
             </p>
           </motion.div>
         );
@@ -321,6 +385,14 @@ const CreateFamilySpace = () => {
         return null;
     }
   };
+
+  if (loading) {
+    return (
+      <MobileLayout className="flex items-center justify-center">
+        <YarnDecoration variant="ball" color="rose" className="w-12 h-12 animate-pulse-soft" />
+      </MobileLayout>
+    );
+  }
 
   return (
     <MobileLayout>
@@ -355,9 +427,13 @@ const CreateFamilySpace = () => {
           size="lg"
           fullWidth
           onClick={handleNext}
-          disabled={!canProceed()}
+          disabled={!canProceed() || isSubmitting}
         >
-          {step === 4 ? "Create Family Space" : "Continue"}
+          {isSubmitting
+            ? "Creating..."
+            : step === 4
+            ? "Create Family Space"
+            : "Continue"}
         </CozyButton>
       </div>
     </MobileLayout>
