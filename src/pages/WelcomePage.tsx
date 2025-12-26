@@ -90,7 +90,7 @@ const WelcomePage = () => {
           <img 
             src={knitLogo} 
             alt="KNIT" 
-            className="h-36 object-contain"
+            className="h-18 object-contain"
           />
         </motion.div>
 
