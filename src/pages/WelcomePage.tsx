@@ -1,23 +1,52 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import MobileLayout from "@/components/layout/MobileLayout";
 import CozyButton from "@/components/ui/CozyButton";
 import YarnDecoration from "@/components/ui/YarnDecoration";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
 
 const WelcomePage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const [checkingFamily, setCheckingFamily] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
+      return;
+    }
+
+    if (user) {
+      checkFamilyMembership();
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  const checkFamilyMembership = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("family_members")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!error && data) {
+        // User already has a family space, redirect there
+        navigate("/family-space", { replace: true });
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking family membership:", error);
+    } finally {
+      setCheckingFamily(false);
+    }
+  };
+
+  if (loading || checkingFamily) {
     return (
       <MobileLayout className="flex items-center justify-center" showPattern>
         <YarnDecoration variant="ball" color="rose" className="w-12 h-12 animate-pulse-soft" />
