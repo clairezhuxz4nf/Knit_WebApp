@@ -34,6 +34,7 @@ const CreateProject = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [step, setStep] = useState(1);
+  const [projectName, setProjectName] = useState("");
   const [eventName, setEventName] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [projectType, setProjectType] = useState("");
@@ -76,6 +77,7 @@ const CreateProject = () => {
       const projectId = Date.now().toString();
       const project = {
         id: projectId,
+        projectName,
         eventName,
         eventDate,
         projectType,
@@ -96,7 +98,7 @@ const CreateProject = () => {
   const canProceed = () => {
     switch (step) {
       case 1:
-        return eventName.trim().length > 0;
+        return projectName.trim().length > 0 && eventName.trim().length > 0;
       case 2:
         return projectType.length > 0;
       case 3:
@@ -128,6 +130,13 @@ const CreateProject = () => {
                 What occasion is this project for?
               </p>
             </div>
+
+            <CozyInput
+              label="Project Name"
+              placeholder="e.g., Family CNY Memories 2026"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+            />
 
             <CozyInput
               label="Event Name"
