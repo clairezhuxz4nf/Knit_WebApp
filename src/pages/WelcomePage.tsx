@@ -7,6 +7,7 @@ import YarnDecoration from "@/components/ui/YarnDecoration";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import yarnHearts from "@/assets/yarn-hearts.png";
+import knitLogo from "@/assets/knit-logo.png";
 
 const WelcomePage = () => {
   const navigate = useNavigate();
@@ -86,9 +87,11 @@ const WelcomePage = () => {
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
           className="text-center mb-12"
         >
-          <h1 className="font-display text-3xl font-bold text-foreground mb-3">
-            Family Storybook
-          </h1>
+          <img 
+            src={knitLogo} 
+            alt="KNIT" 
+            className="h-12 object-contain mb-3"
+          />
           <p className="text-muted-foreground text-lg leading-relaxed max-w-[280px]">
             Preserve your family's stories — for today, and for generations.
           </p>
