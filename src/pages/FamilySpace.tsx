@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Calendar, FolderOpen, Plus, ChevronRight } from "lucide-react";
+import { Calendar, FolderOpen, Plus, ChevronRight, LogOut } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import CozyCard from "@/components/ui/CozyCard";
@@ -25,7 +25,7 @@ interface FamilySpaceData {
 
 const FamilySpace = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [familySpace, setFamilySpace] = useState<FamilySpaceData | null>(null);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [activeTab, setActiveTab] = useState<"chronicle" | "projects">("chronicle");
@@ -179,7 +179,16 @@ const FamilySpace = () => {
         showSettings
         onSettingsClick={() => navigate("/family-settings")}
         rightElement={
-          <img src={logo} alt="Knit" className="w-8 h-8 object-contain" />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={signOut}
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              aria-label="Logout"
+            >
+              <LogOut className="w-5 h-5 text-muted-foreground" />
+            </button>
+            <img src={logo} alt="Knit" className="w-8 h-8 object-contain" />
+          </div>
         }
       />
 
