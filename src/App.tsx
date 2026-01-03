@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
 import WelcomePage from "./pages/WelcomePage";
+import PhoneSignup from "./pages/PhoneSignup";
 import CreateFamilySpace from "./pages/CreateFamilySpace";
 import JoinFamilySpace from "./pages/JoinFamilySpace";
 import FamilySpace from "./pages/FamilySpace";
@@ -27,9 +28,10 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/auth" replace />} />
+            <Route path="/" element={<Navigate to="/welcome-page" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/welcome-page" element={<WelcomePage />} />
+            <Route path="/phone-signup" element={<PhoneSignup />} />
             <Route path="/create-family-space" element={<CreateFamilySpace />} />
             <Route path="/join-family-space" element={<JoinFamilySpace />} />
             <Route path="/family-space" element={<FamilySpace />} />
