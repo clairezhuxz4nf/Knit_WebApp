@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight, Settings } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
@@ -204,18 +204,7 @@ const EventChronicle = () => {
 
   return (
     <MobileLayout showPattern className="pb-20">
-      <Header 
-        title="Chronicle of Events" 
-        rightElement={
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-2 -mr-2 rounded-full hover:bg-muted transition-colors"
-            aria-label="Event Settings"
-          >
-            <Settings className="w-5 h-5 text-foreground" />
-          </button>
-        }
-      />
+      <Header title="Chronicle of Events" />
 
       <div className="flex-1 px-6 py-4 overflow-y-auto pb-24">
         <motion.div
@@ -380,6 +369,21 @@ const EventChronicle = () => {
             </CozyButton>
           </CozyCard>
         )}
+
+        {/* Customize Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-6 text-center"
+        >
+          <button
+            onClick={() => setShowSettings(true)}
+            className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4 transition-colors"
+          >
+            Customize my own events
+          </button>
+        </motion.div>
       </div>
 
       <EventSettingsModal
