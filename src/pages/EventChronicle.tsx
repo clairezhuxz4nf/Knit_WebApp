@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyButton from "@/components/ui/CozyButton";
+
 import YarnDecoration from "@/components/ui/YarnDecoration";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -317,20 +318,6 @@ const EventChronicle = () => {
       </div>
 
       {/* Floating Action Button */}
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ delay: 0.5, type: "spring" }}
-        className="fixed bottom-24 right-6"
-      >
-        <CozyButton
-          variant="primary"
-          className="w-14 h-14 rounded-full shadow-lifted p-0"
-          onClick={() => navigate("/create-project")}
-        >
-          <Plus className="w-6 h-6" />
-        </CozyButton>
-      </motion.div>
 
       <BottomNav />
     </MobileLayout>
