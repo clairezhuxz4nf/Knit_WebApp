@@ -16,6 +16,8 @@ import EventChronicle from "./pages/EventChronicle";
 import WorkingProjects from "./pages/WorkingProjects";
 import CreateProject from "./pages/CreateProject";
 import Project from "./pages/Project";
+import Family from "./pages/Family";
+import Quests from "./pages/Quests";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,11 +36,13 @@ const App = () => (
             <Route path="/phone-signup" element={<PhoneSignup />} />
             <Route path="/create-family-space" element={<CreateFamilySpace />} />
             <Route path="/join-family-space" element={<JoinFamilySpace />} />
-            <Route path="/family-space" element={<FamilySpace />} />
+            <Route path="/family-space" element={<Navigate to="/family" replace />} />
+            <Route path="/family" element={<Family />} />
             <Route path="/family-settings" element={<FamilySettings />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/event-chronicle" element={<EventChronicle />} />
             <Route path="/working-projects" element={<WorkingProjects />} />
+            <Route path="/quests" element={<Quests />} />
             <Route path="/create-project" element={<CreateProject />} />
             <Route path="/project/:projectId" element={<Project />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

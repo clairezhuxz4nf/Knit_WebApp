@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ChevronRight, Plus } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
+import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyButton from "@/components/ui/CozyButton";
 import YarnDecoration from "@/components/ui/YarnDecoration";
@@ -144,8 +145,8 @@ const EventChronicle = () => {
   }
 
   return (
-    <MobileLayout showPattern>
-      <Header title="Chronicle of Events" showBack />
+    <MobileLayout showPattern className="pb-20">
+      <Header title="Chronicle of Events" />
 
       <div className="flex-1 px-6 py-4 overflow-y-auto pb-24">
         <motion.div
@@ -289,7 +290,7 @@ const EventChronicle = () => {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.5, type: "spring" }}
-        className="fixed bottom-6 right-6"
+        className="fixed bottom-24 right-6"
       >
         <CozyButton
           variant="primary"
@@ -299,6 +300,8 @@ const EventChronicle = () => {
           <Plus className="w-6 h-6" />
         </CozyButton>
       </motion.div>
+
+      <BottomNav />
     </MobileLayout>
   );
 };

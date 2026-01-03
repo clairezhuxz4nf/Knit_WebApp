@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import { ChevronRight, Users, Clock, MoreHorizontal } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
+import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyButton from "@/components/ui/CozyButton";
 import YarnDecoration from "@/components/ui/YarnDecoration";
-
 const projectTypes = {
   "culture-story": { label: "Culture Story", icon: "🌍", color: "sage" },
   "food-family": { label: "Food at Family", icon: "🍳", color: "butter" },
@@ -65,8 +65,8 @@ const WorkingProjects = () => {
   });
 
   return (
-    <MobileLayout>
-      <Header title="Working Projects" showBack />
+    <MobileLayout className="pb-20">
+      <Header title="Working Projects" />
 
       {/* Filter Tabs */}
       <div className="px-6 py-4">
@@ -222,7 +222,7 @@ const WorkingProjects = () => {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.5, type: "spring" }}
-        className="fixed bottom-6 right-6"
+        className="fixed bottom-24 right-6"
       >
         <CozyButton
           variant="primary"
@@ -232,6 +232,8 @@ const WorkingProjects = () => {
           <span className="text-xl">+</span>
         </CozyButton>
       </motion.div>
+
+      <BottomNav />
     </MobileLayout>
   );
 };
