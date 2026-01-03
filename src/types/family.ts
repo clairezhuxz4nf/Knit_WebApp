@@ -44,13 +44,3 @@ export interface DerivedRelation {
   relation: 'parent' | 'child' | 'spouse' | 'sibling';
   name: string;
 }
-
-// Node data for React Flow - using Record<string, unknown> compatible structure
-export interface PersonNodeData extends Record<string, unknown> {
-  person: Person;
-  isCurrentUser: boolean;
-  canEdit: boolean;
-  onEdit: (person: Person) => void;
-  onAddRelative: (person: Person, type: 'parent' | 'child' | 'spouse') => void;
-  onInvite: (person: Person) => void;
-}
