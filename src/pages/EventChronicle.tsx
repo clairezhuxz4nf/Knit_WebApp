@@ -55,31 +55,7 @@ const EventChronicle = () => {
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const [eventSettings, setEventSettings] = useState<EventSettings>(() => {
-    const saved = localStorage.getItem("eventChronicleSettings");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Migrate old format to new format
-      if (parsed.showWesternFestivals !== undefined && !parsed.westernFestivals) {
-        return {
-          ...DEFAULT_SETTINGS,
-          westernFestivals: DEFAULT_WESTERN_FESTIVALS.map(f => ({
-            ...f,
-            enabled: parsed.showWesternFestivals
-          })),
-          showBirthdays: parsed.showBirthdays ?? true,
-          anniversaries: parsed.anniversaries ?? [],
-          customEvents: parsed.customEvents ?? [],
-        };
-      }
-      // Ensure westernFestivals exists
-      if (!parsed.westernFestivals) {
-        return { ...DEFAULT_SETTINGS, ...parsed, westernFestivals: DEFAULT_WESTERN_FESTIVALS };
-      }
-      return parsed;
-    }
-    return DEFAULT_SETTINGS;
-  });
+  const [eventSettings, setEventSettings] = useState<EventSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -88,44 +64,110 @@ const EventChronicle = () => {
     }
 
     if (user) {
-      fetchFamilyMembers();
+      fetchData();
     }
   }, [user, loading, navigate]);
 
-  const fetchFamilyMembers = async () => {
+  const fetchData = async () => {
     if (!user) return;
 
     try {
-      const { data: memberData, error: memberError } = await supabase
-        .from("family_members")
-        .select("family_space_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      // Fetch family members and event settings in parallel
+      const [memberResult, settingsResult] = await Promise.all([
+        fetchFamilyMembers(),
+        fetchEventSettings(),
+      ]);
 
-      if (memberError) throw memberError;
-
-      if (!memberData) {
-        navigate("/welcome-page");
-        return;
-      }
-
-      const { data: membersData, error: membersError } = await supabase
-        .from("family_members")
-        .select("id, display_name, birthday")
-        .eq("family_space_id", memberData.family_space_id);
-
-      if (membersError) throw membersError;
-      setMembers(membersData || []);
+      if (memberResult === "redirect") return;
     } catch (error) {
-      console.error("Error fetching family members:", error);
+      console.error("Error fetching data:", error);
     } finally {
       setDataLoading(false);
     }
   };
 
-  const handleSaveSettings = (newSettings: EventSettings) => {
+  const fetchFamilyMembers = async () => {
+    if (!user) return;
+
+    const { data: memberData, error: memberError } = await supabase
+      .from("family_members")
+      .select("family_space_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (memberError) throw memberError;
+
+    if (!memberData) {
+      navigate("/welcome-page");
+      return "redirect";
+    }
+
+    const { data: membersData, error: membersError } = await supabase
+      .from("family_members")
+      .select("id, display_name, birthday")
+      .eq("family_space_id", memberData.family_space_id);
+
+    if (membersError) throw membersError;
+    setMembers(membersData || []);
+  };
+
+  const fetchEventSettings = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("user_event_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching event settings:", error);
+      return;
+    }
+
+    if (data) {
+      setEventSettings({
+        westernFestivals: data.western_festivals as unknown as WesternFestival[],
+        showBirthdays: data.show_birthdays,
+        anniversaries: data.anniversaries as unknown as EventSettings["anniversaries"],
+        customEvents: data.custom_events as unknown as EventSettings["customEvents"],
+      });
+    } else {
+      // Create default settings for new user
+      const { error: insertError } = await supabase
+        .from("user_event_settings")
+        .insert({
+          user_id: user.id,
+          western_festivals: JSON.parse(JSON.stringify(DEFAULT_WESTERN_FESTIVALS)),
+          show_birthdays: true,
+          anniversaries: [],
+          custom_events: [],
+        });
+
+      if (insertError) {
+        console.error("Error creating default settings:", insertError);
+      }
+    }
+  };
+
+  const handleSaveSettings = async (newSettings: EventSettings) => {
     setEventSettings(newSettings);
-    localStorage.setItem("eventChronicleSettings", JSON.stringify(newSettings));
+
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("user_event_settings")
+      .update({
+        western_festivals: JSON.parse(JSON.stringify(newSettings.westernFestivals)),
+        show_birthdays: newSettings.showBirthdays,
+        anniversaries: JSON.parse(JSON.stringify(newSettings.anniversaries)),
+        custom_events: JSON.parse(JSON.stringify(newSettings.customEvents)),
+      })
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error saving settings:", error);
+    }
   };
 
   const getAllEvents = () => {
