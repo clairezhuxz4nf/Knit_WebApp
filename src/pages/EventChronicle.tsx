@@ -210,15 +210,26 @@ const EventChronicle = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-6"
+          className="mb-6"
         >
-          <YarnDecoration variant="wave" color="rose" className="w-32 mx-auto mb-3" />
-          <h2 className="font-display text-xl font-semibold text-foreground">
-            Your Family's Timeline
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Upcoming milestones to celebrate together
-          </p>
+          <div className="flex items-center justify-center gap-4 mb-3">
+            <YarnDecoration variant="wave" color="rose" className="w-32" />
+            <CozyButton
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowSettings(true)}
+            >
+              Customize My Own Events
+            </CozyButton>
+          </div>
+          <div className="text-center">
+            <h2 className="font-display text-xl font-semibold text-foreground">
+              Your Family's Timeline
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Upcoming milestones to celebrate together
+            </p>
+          </div>
         </motion.div>
 
         {/* Yarn Timeline */}
@@ -369,21 +380,6 @@ const EventChronicle = () => {
             </CozyButton>
           </CozyCard>
         )}
-
-        {/* Customize Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mt-6 text-center"
-        >
-          <button
-            onClick={() => setShowSettings(true)}
-            className="text-sm text-muted-foreground hover:text-primary underline underline-offset-4 transition-colors"
-          >
-            Customize my own events
-          </button>
-        </motion.div>
       </div>
 
       <EventSettingsModal
