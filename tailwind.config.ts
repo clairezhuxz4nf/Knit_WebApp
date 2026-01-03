@@ -62,6 +62,7 @@ export default {
           taupe: "hsl(var(--yarn-taupe))",
           butter: "hsl(var(--yarn-butter))",
           teal: "hsl(var(--yarn-teal))",
+          brown: "hsl(var(--yarn-brown))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
