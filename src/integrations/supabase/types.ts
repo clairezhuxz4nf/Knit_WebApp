@@ -61,6 +61,57 @@ export type Database = {
           },
         ]
       }
+      family_invites: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          expires_at: string
+          family_space_id: string
+          id: string
+          invite_code: string
+          invited_by: string
+          target_person_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          expires_at?: string
+          family_space_id: string
+          id?: string
+          invite_code: string
+          invited_by: string
+          target_person_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          expires_at?: string
+          family_space_id?: string
+          id?: string
+          invite_code?: string
+          invited_by?: string
+          target_person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_invites_family_space_id_fkey"
+            columns: ["family_space_id"]
+            isOneToOne: false
+            referencedRelation: "family_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_invites_target_person_id_fkey"
+            columns: ["target_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_members: {
         Row: {
           birthday: string | null
@@ -125,6 +176,56 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      people: {
+        Row: {
+          avatar_url: string | null
+          birth_date: string | null
+          created_at: string
+          created_by: string
+          family_space_id: string
+          first_name: string
+          id: string
+          last_name: string | null
+          status: Database["public"]["Enums"]["person_status"]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          birth_date?: string | null
+          created_at?: string
+          created_by: string
+          family_space_id: string
+          first_name: string
+          id?: string
+          last_name?: string | null
+          status?: Database["public"]["Enums"]["person_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          birth_date?: string | null
+          created_at?: string
+          created_by?: string
+          family_space_id?: string
+          first_name?: string
+          id?: string
+          last_name?: string | null
+          status?: Database["public"]["Enums"]["person_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_family_space_id_fkey"
+            columns: ["family_space_id"]
+            isOneToOne: false
+            referencedRelation: "family_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -200,12 +301,66 @@ export type Database = {
           },
         ]
       }
+      relationships: {
+        Row: {
+          created_at: string
+          family_space_id: string
+          id: string
+          person_a_id: string
+          person_b_id: string
+          relationship_type: Database["public"]["Enums"]["relationship_type"]
+        }
+        Insert: {
+          created_at?: string
+          family_space_id: string
+          id?: string
+          person_a_id: string
+          person_b_id: string
+          relationship_type: Database["public"]["Enums"]["relationship_type"]
+        }
+        Update: {
+          created_at?: string
+          family_space_id?: string
+          id?: string
+          person_a_id?: string
+          person_b_id?: string
+          relationship_type?: Database["public"]["Enums"]["relationship_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationships_family_space_id_fkey"
+            columns: ["family_space_id"]
+            isOneToOne: false
+            referencedRelation: "family_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationships_person_a_id_fkey"
+            columns: ["person_a_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationships_person_b_id_fkey"
+            columns: ["person_b_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      can_edit_placeholder: {
+        Args: { _person_id: string; _user_id: string }
+        Returns: boolean
+      }
       generate_family_code: { Args: never; Returns: string }
+      generate_invite_code: { Args: never; Returns: string }
       get_user_family_space_ids: {
         Args: { _user_id: string }
         Returns: string[]
@@ -218,9 +373,14 @@ export type Database = {
         Args: { _family_space_id: string; _user_id: string }
         Returns: boolean
       }
+      is_person_owner: {
+        Args: { _person_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      person_status: "active" | "invited" | "placeholder" | "deceased"
+      relationship_type: "parent_child" | "partnership"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -347,6 +507,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      person_status: ["active", "invited", "placeholder", "deceased"],
+      relationship_type: ["parent_child", "partnership"],
+    },
   },
 } as const
