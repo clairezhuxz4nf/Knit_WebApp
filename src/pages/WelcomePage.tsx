@@ -12,21 +12,19 @@ import knitLogo from "@/assets/knit-logo.png";
 const WelcomePage = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [checkingFamily, setCheckingFamily] = useState(true);
+  const [checkingFamily, setCheckingFamily] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-      return;
-    }
-
-    if (user) {
+    if (!loading && user) {
       checkFamilyMembership();
+    } else if (!loading) {
+      setCheckingFamily(false);
     }
-  }, [user, loading, navigate]);
+  }, [user, loading]);
 
   const checkFamilyMembership = async () => {
     if (!user) return;
+    setCheckingFamily(true);
 
     try {
       const { data, error } = await supabase
@@ -44,6 +42,24 @@ const WelcomePage = () => {
       console.error("Error checking family membership:", error);
     } finally {
       setCheckingFamily(false);
+    }
+  };
+
+  const handleCreateFamilySpace = () => {
+    if (user) {
+      navigate("/create-family-space");
+    } else {
+      // Not logged in - go to phone signup
+      navigate("/phone-signup");
+    }
+  };
+
+  const handleJoinFamilySpace = () => {
+    if (user) {
+      navigate("/join-family-space");
+    } else {
+      // Not logged in - go to phone signup with join intent
+      navigate("/phone-signup?intent=join");
     }
   };
 
@@ -137,7 +153,7 @@ const WelcomePage = () => {
             variant="primary"
             size="lg"
             fullWidth
-            onClick={() => navigate("/create-family-space")}
+            onClick={handleCreateFamilySpace}
           >
             <YarnDecoration variant="heart" color="sage" className="w-5 h-5" />
             Create a Family Space
@@ -147,13 +163,28 @@ const WelcomePage = () => {
             variant="outline"
             size="lg"
             fullWidth
-            onClick={() => navigate("/join-family-space")}
+            onClick={handleJoinFamilySpace}
           >
             <YarnDecoration variant="ball" color="rose" className="w-5 h-5" />
             Join a Family Space
           </CozyButton>
         </motion.div>
       </div>
+
+      {/* Login Link */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.7 }}
+        className="pb-4 flex justify-center"
+      >
+        <button
+          onClick={() => navigate("/auth")}
+          className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+        >
+          Login
+        </button>
+      </motion.div>
 
       {/* Bottom Decoration */}
       <motion.div
