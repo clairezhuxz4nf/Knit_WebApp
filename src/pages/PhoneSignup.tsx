@@ -14,6 +14,12 @@ import yarnHearts from "@/assets/yarn-hearts.png";
 const phoneSchema = z.string().min(10, "Please enter a valid phone number").regex(/^\+?[0-9\s-()]+$/, "Please enter a valid phone number");
 const otpSchema = z.string().length(6, "Please enter the 6-digit code");
 
+// Test credentials for development
+const TEST_PHONE = "+15555555555";
+const TEST_CODE = "123456";
+const TEST_EMAIL = "testuser@knit.app";
+const TEST_PASSWORD = "TestKnit123!";
+
 const PhoneSignup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -25,6 +31,16 @@ const PhoneSignup = () => {
   const [otp, setOtp] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isTestMode, setIsTestMode] = useState(false);
+
+  const formatPhone = (phoneNumber: string) => {
+    return phoneNumber.startsWith("+") ? phoneNumber : `+1${phoneNumber.replace(/\D/g, "")}`;
+  };
+
+  const isTestPhone = (phoneNumber: string) => {
+    const formatted = formatPhone(phoneNumber);
+    return formatted === TEST_PHONE || phoneNumber.replace(/\D/g, "") === "5555555555";
+  };
 
   const handleSendCode = async () => {
     const result = phoneSchema.safeParse(phone);
@@ -37,8 +53,19 @@ const PhoneSignup = () => {
     setIsSubmitting(true);
 
     try {
-      // Format phone with country code if not present
-      const formattedPhone = phone.startsWith("+") ? phone : `+1${phone.replace(/\D/g, "")}`;
+      // Check if this is the test phone number
+      if (isTestPhone(phone)) {
+        setIsTestMode(true);
+        setStep("verify");
+        toast({
+          title: "Test Mode",
+          description: "Use code 123456 to verify.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const formattedPhone = formatPhone(phone);
       
       const { error } = await supabase.auth.signInWithOtp({
         phone: formattedPhone,
@@ -79,7 +106,57 @@ const PhoneSignup = () => {
     setIsSubmitting(true);
 
     try {
-      const formattedPhone = phone.startsWith("+") ? phone : `+1${phone.replace(/\D/g, "")}`;
+      // Handle test mode verification
+      if (isTestMode) {
+        if (otp === TEST_CODE) {
+          // Try to sign in with test user, or create if doesn't exist
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: TEST_EMAIL,
+            password: TEST_PASSWORD,
+          });
+
+          if (signInError) {
+            // User might not exist, try to create
+            const { error: signUpError } = await supabase.auth.signUp({
+              email: TEST_EMAIL,
+              password: TEST_PASSWORD,
+              options: {
+                emailRedirectTo: `${window.location.origin}/`,
+                data: {
+                  display_name: "Test User",
+                },
+              },
+            });
+
+            if (signUpError) {
+              toast({
+                variant: "destructive",
+                title: "Test login failed",
+                description: signUpError.message,
+              });
+              setIsSubmitting(false);
+              return;
+            }
+          }
+
+          toast({
+            title: "Welcome to Knit!",
+            description: "Test account logged in successfully.",
+          });
+          
+          if (intent === "join") {
+            navigate("/join-family-space");
+          } else {
+            navigate("/create-family-space");
+          }
+        } else {
+          setError("Invalid code. Use 123456 for test mode.");
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      const formattedPhone = formatPhone(phone);
       
       const { error } = await supabase.auth.verifyOtp({
         phone: formattedPhone,
@@ -98,7 +175,6 @@ const PhoneSignup = () => {
           title: "Welcome to Knit!",
           description: "Your account has been created.",
         });
-        // Redirect based on intent
         if (intent === "join") {
           navigate("/join-family-space");
         } else {
@@ -162,7 +238,7 @@ const PhoneSignup = () => {
           <p className="text-muted-foreground">
             {step === "phone"
               ? "Create an account to preserve your family's stories!"
-              : "We sent a code to your phone."}
+              : isTestMode ? "Enter code 123456 to continue." : "We sent a code to your phone."}
           </p>
         </motion.div>
 
@@ -204,6 +280,11 @@ const PhoneSignup = () => {
               >
                 {isSubmitting ? "Sending..." : "Next"}
               </CozyButton>
+
+              {/* Test mode hint */}
+              <p className="text-xs text-muted-foreground text-center mt-4">
+                For testing: use +15555555555
+              </p>
             </>
           ) : (
             <>
@@ -214,7 +295,6 @@ const PhoneSignup = () => {
                   placeholder="Enter 6-digit code"
                   value={otp}
                   onChange={(e) => {
-                    // Only allow numbers
                     const value = e.target.value.replace(/\D/g, "").slice(0, 6);
                     setOtp(value);
                     setError(null);
