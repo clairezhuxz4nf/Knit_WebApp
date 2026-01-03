@@ -350,6 +350,39 @@ export type Database = {
           },
         ]
       }
+      user_event_settings: {
+        Row: {
+          anniversaries: Json
+          created_at: string
+          custom_events: Json
+          id: string
+          show_birthdays: boolean
+          updated_at: string
+          user_id: string
+          western_festivals: Json
+        }
+        Insert: {
+          anniversaries?: Json
+          created_at?: string
+          custom_events?: Json
+          id?: string
+          show_birthdays?: boolean
+          updated_at?: string
+          user_id: string
+          western_festivals?: Json
+        }
+        Update: {
+          anniversaries?: Json
+          created_at?: string
+          custom_events?: Json
+          id?: string
+          show_birthdays?: boolean
+          updated_at?: string
+          user_id?: string
+          western_festivals?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
