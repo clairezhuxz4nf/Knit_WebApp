@@ -10,7 +10,6 @@ import CozyButton from "@/components/ui/CozyButton";
 import YarnDecoration from "@/components/ui/YarnDecoration";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import yarnTimelineImg from "@/assets/yarn-timeline.png";
 
 interface FamilyMember {
   id: string;
@@ -163,22 +162,13 @@ const EventChronicle = () => {
           </p>
         </motion.div>
 
-        {/* Yarn Timeline with Image */}
+        {/* Yarn Timeline */}
         <div className="relative pb-8">
-          {/* Timeline Image - positioned on the left */}
-          <div className="absolute left-8 top-0 bottom-0 w-16 flex justify-center">
-            <img 
-              src={yarnTimelineImg} 
-              alt="Yarn timeline" 
-              className="h-full w-auto object-contain object-top opacity-90"
-              style={{ minHeight: events.length * 140 + 'px' }}
-            />
-          </div>
-
-          {/* Event Cards */}
-          <div className="space-y-4 ml-20">
+          {/* Event Cards with Yarn Thread */}
+          <div className="space-y-4 ml-12">
             {events.map((event, index) => {
               const daysUntil = getDaysUntil(event.date);
+              const isLast = index === events.length - 1;
 
               return (
                 <motion.div
@@ -188,9 +178,28 @@ const EventChronicle = () => {
                   transition={{ delay: index * 0.08 }}
                   className="relative"
                 >
-                  {/* Connector dot */}
+                  {/* Yarn thread line */}
+                  {!isLast && (
+                    <div 
+                      className="absolute -left-6 top-8 w-1 bg-gradient-to-b from-yarn-rose via-yarn-butter to-yarn-rose"
+                      style={{ 
+                        height: 'calc(100% + 16px)',
+                        borderRadius: '4px',
+                        boxShadow: '0 0 4px rgba(0,0,0,0.1)',
+                        background: `repeating-linear-gradient(
+                          180deg,
+                          hsl(var(--yarn-rose)) 0px,
+                          hsl(var(--yarn-rose)) 8px,
+                          hsl(var(--yarn-butter)) 8px,
+                          hsl(var(--yarn-butter)) 16px
+                        )`
+                      }}
+                    />
+                  )}
+                  
+                  {/* Yarn knot with event icon */}
                   <div 
-                    className={`absolute -left-12 top-6 w-3 h-3 rounded-full border-2 border-background shadow-sm ${
+                    className={`absolute -left-10 top-4 w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-md border-2 border-background z-10 ${
                       event.color === "rose"
                         ? "bg-yarn-rose"
                         : event.color === "sage"
@@ -199,7 +208,29 @@ const EventChronicle = () => {
                         ? "bg-yarn-butter"
                         : "bg-yarn-teal"
                     }`}
-                  />
+                    style={{
+                      boxShadow: `
+                        0 2px 8px rgba(0,0,0,0.15),
+                        inset 0 1px 2px rgba(255,255,255,0.3),
+                        inset 0 -1px 2px rgba(0,0,0,0.1)
+                      `
+                    }}
+                  >
+                    {/* Knitted texture overlay */}
+                    <div 
+                      className="absolute inset-0 rounded-full opacity-30"
+                      style={{
+                        background: `repeating-linear-gradient(
+                          45deg,
+                          transparent 0px,
+                          transparent 2px,
+                          rgba(255,255,255,0.3) 2px,
+                          rgba(255,255,255,0.3) 4px
+                        )`
+                      }}
+                    />
+                    <span className="relative z-10">{event.icon}</span>
+                  </div>
                   
                   <CozyCard
                     variant="elevated"
