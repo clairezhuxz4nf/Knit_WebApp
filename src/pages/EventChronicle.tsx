@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Settings } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyButton from "@/components/ui/CozyButton";
-
 import YarnDecoration from "@/components/ui/YarnDecoration";
+import EventSettingsModal from "@/components/chronicle/EventSettingsModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,11 +18,30 @@ interface FamilyMember {
   birthday: string | null;
 }
 
+interface EventSettings {
+  showWesternFestivals: boolean;
+  showBirthdays: boolean;
+  anniversaries: { id: string; title: string; month: number; day: number }[];
+  customEvents: { id: string; title: string; month: number; day: number; icon: string }[];
+}
+
+const DEFAULT_SETTINGS: EventSettings = {
+  showWesternFestivals: true,
+  showBirthdays: true,
+  anniversaries: [],
+  customEvents: [],
+};
+
 const EventChronicle = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [eventSettings, setEventSettings] = useState<EventSettings>(() => {
+    const saved = localStorage.getItem("eventChronicleSettings");
+    return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -39,7 +58,6 @@ const EventChronicle = () => {
     if (!user) return;
 
     try {
-      // Get family space the user belongs to
       const { data: memberData, error: memberError } = await supabase
         .from("family_members")
         .select("family_space_id")
@@ -53,7 +71,6 @@ const EventChronicle = () => {
         return;
       }
 
-      // Get all family members with birthdays
       const { data: membersData, error: membersError } = await supabase
         .from("family_members")
         .select("id, display_name, birthday")
@@ -68,51 +85,92 @@ const EventChronicle = () => {
     }
   };
 
+  const handleSaveSettings = (newSettings: EventSettings) => {
+    setEventSettings(newSettings);
+    localStorage.setItem("eventChronicleSettings", JSON.stringify(newSettings));
+  };
+
   const getAllEvents = () => {
     const events = [];
     const today = new Date();
     const year = today.getFullYear();
 
     // Add member birthdays from database
-    members.forEach((member) => {
-      if (member.birthday) {
-        const bday = new Date(member.birthday);
-        const thisYearBday = new Date(year, bday.getMonth(), bday.getDate());
-        if (thisYearBday < today) {
-          thisYearBday.setFullYear(year + 1);
+    if (eventSettings.showBirthdays) {
+      members.forEach((member) => {
+        if (member.birthday) {
+          const bday = new Date(member.birthday);
+          const thisYearBday = new Date(year, bday.getMonth(), bday.getDate());
+          if (thisYearBday < today) {
+            thisYearBday.setFullYear(year + 1);
+          }
+          events.push({
+            id: `bday-${member.id}`,
+            title: `${member.display_name || "Family Member"}'s Birthday`,
+            date: thisYearBday,
+            type: "birthday",
+            icon: "🎂",
+            color: "rose" as const,
+          });
+        }
+      });
+    }
+
+    // Add western holidays
+    if (eventSettings.showWesternFestivals) {
+      const holidays = [
+        { id: "christmas", title: "Christmas", month: 11, day: 25, icon: "🎄", color: "sage" as const },
+        { id: "thanksgiving", title: "Thanksgiving", month: 10, day: 28, icon: "🦃", color: "teal" as const },
+        { id: "easter", title: "Easter", month: 3, day: 20, icon: "🐣", color: "butter" as const },
+        { id: "halloween", title: "Halloween", month: 9, day: 31, icon: "🎃", color: "butter" as const },
+        { id: "valentines", title: "Valentine's Day", month: 1, day: 14, icon: "💝", color: "rose" as const },
+      ];
+
+      holidays.forEach((holiday) => {
+        let holidayDate = new Date(year, holiday.month, holiday.day);
+        if (holidayDate < today) {
+          holidayDate = new Date(year + 1, holiday.month, holiday.day);
         }
         events.push({
-          id: `bday-${member.id}`,
-          title: `${member.display_name || "Family Member"}'s Birthday`,
-          date: thisYearBday,
-          type: "birthday",
-          icon: "🎂",
-          color: "rose" as const,
+          id: holiday.id,
+          title: holiday.title,
+          date: holidayDate,
+          type: "holiday",
+          icon: holiday.icon,
+          color: holiday.color,
         });
-      }
-    });
+      });
+    }
 
-    // Add holidays
-    const holidays = [
-      { id: "christmas", title: "Christmas", month: 11, day: 25, icon: "🎄", color: "sage" as const },
-      { id: "lunar", title: "Chinese Lunar New Year", month: 0, day: 29, icon: "🧧", color: "butter" as const },
-      { id: "thanksgiving", title: "Thanksgiving", month: 10, day: 28, icon: "🦃", color: "teal" as const },
-      { id: "easter", title: "Easter", month: 3, day: 20, icon: "🐣", color: "butter" as const },
-      { id: "diwali", title: "Diwali", month: 9, day: 20, icon: "🪔", color: "rose" as const },
-    ];
-
-    holidays.forEach((holiday) => {
-      let holidayDate = new Date(year, holiday.month, holiday.day);
-      if (holidayDate < today) {
-        holidayDate = new Date(year + 1, holiday.month, holiday.day);
+    // Add anniversaries
+    eventSettings.anniversaries.forEach((ann) => {
+      let annDate = new Date(year, ann.month, ann.day);
+      if (annDate < today) {
+        annDate = new Date(year + 1, ann.month, ann.day);
       }
       events.push({
-        id: holiday.id,
-        title: holiday.title,
-        date: holidayDate,
-        type: "holiday",
-        icon: holiday.icon,
-        color: holiday.color,
+        id: ann.id,
+        title: ann.title,
+        date: annDate,
+        type: "anniversary",
+        icon: "💍",
+        color: "butter" as const,
+      });
+    });
+
+    // Add custom events
+    eventSettings.customEvents.forEach((custom) => {
+      let customDate = new Date(year, custom.month, custom.day);
+      if (customDate < today) {
+        customDate = new Date(year + 1, custom.month, custom.day);
+      }
+      events.push({
+        id: custom.id,
+        title: custom.title,
+        date: customDate,
+        type: "custom",
+        icon: custom.icon,
+        color: "teal" as const,
       });
     });
 
@@ -146,7 +204,18 @@ const EventChronicle = () => {
 
   return (
     <MobileLayout showPattern className="pb-20">
-      <Header title="Chronicle of Events" />
+      <Header 
+        title="Chronicle of Events" 
+        rightElement={
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-2 -mr-2 rounded-full hover:bg-muted transition-colors"
+            aria-label="Event Settings"
+          >
+            <Settings className="w-5 h-5 text-foreground" />
+          </button>
+        }
+      />
 
       <div className="flex-1 px-6 py-4 overflow-y-auto pb-24">
         <motion.div
@@ -165,7 +234,6 @@ const EventChronicle = () => {
 
         {/* Yarn Timeline */}
         <div className="relative pb-8">
-          {/* Event Cards with Yarn Thread */}
           <div className="space-y-4 ml-12">
             {events.map((event, index) => {
               const daysUntil = getDaysUntil(event.date);
@@ -179,10 +247,9 @@ const EventChronicle = () => {
                   transition={{ delay: index * 0.08 }}
                   className="relative"
                 >
-                  {/* Yarn thread line */}
                   {!isLast && (
                     <div 
-                      className="absolute -left-6 top-8 w-1 bg-gradient-to-b from-yarn-rose via-yarn-butter to-yarn-rose"
+                      className="absolute -left-6 top-8 w-1"
                       style={{ 
                         height: 'calc(100% + 16px)',
                         borderRadius: '4px',
@@ -198,7 +265,6 @@ const EventChronicle = () => {
                     />
                   )}
                   
-                  {/* Yarn knot with event icon */}
                   <div 
                     className={`absolute -left-10 top-4 w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-md border-2 border-background z-10 ${
                       event.color === "rose"
@@ -217,7 +283,6 @@ const EventChronicle = () => {
                       `
                     }}
                   >
-                    {/* Knitted texture overlay */}
                     <div 
                       className="absolute inset-0 rounded-full opacity-30"
                       style={{
@@ -305,19 +370,24 @@ const EventChronicle = () => {
               No Events Yet
             </h3>
             <p className="text-muted-foreground text-sm mb-6">
-              Add family members with birthdays in the settings
+              Configure your events in the settings
             </p>
             <CozyButton
               variant="primary"
-              onClick={() => navigate("/family-settings")}
+              onClick={() => setShowSettings(true)}
             >
-              Go to Settings
+              Open Settings
             </CozyButton>
           </CozyCard>
         )}
       </div>
 
-      {/* Floating Action Button */}
+      <EventSettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        settings={eventSettings}
+        onSave={handleSaveSettings}
+      />
 
       <BottomNav />
     </MobileLayout>
