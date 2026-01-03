@@ -422,7 +422,7 @@ const EventSettingsModal = ({ isOpen, onClose, settings, onSave }: EventSettings
               </CozyCard>
 
               {/* Save Button */}
-              <div className="pt-4 pb-8">
+              <div className="pt-4 pb-24">
                 <CozyButton variant="primary" fullWidth onClick={handleSave}>
                   Save Settings
                 </CozyButton>
