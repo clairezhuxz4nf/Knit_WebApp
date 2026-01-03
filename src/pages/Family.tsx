@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gift, Search, Settings, Share2, Plus, Users } from "lucide-react";
+import { Settings, Plus, Users } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
@@ -28,7 +28,7 @@ const Family = () => {
   const { user, loading: authLoading } = useAuth();
   const [familySpace, setFamilySpace] = useState<FamilySpaceData | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
-  const [showFamilyInviteCode, setShowFamilyInviteCode] = useState(false);
+  
   
   // Modal states
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
@@ -125,15 +125,6 @@ const Family = () => {
     await createSelfNode(firstName, lastName);
   };
 
-  const copyFamilyCode = () => {
-    if (familySpace?.family_code) {
-      navigator.clipboard.writeText(familySpace.family_code);
-      toast({
-        title: "Code copied!",
-        description: "Share this code with family members to join.",
-      });
-    }
-  };
 
   if (authLoading || dataLoading) {
     return (
@@ -227,58 +218,6 @@ const Family = () => {
 
       {/* Action cards */}
       <div className="px-6 mt-4 space-y-3">
-        {/* Invite card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <CozyCard
-            className="cursor-pointer hover:shadow-cozy transition-all"
-            onClick={() => setShowFamilyInviteCode(true)}
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-accent/30 flex items-center justify-center">
-                <Gift className="w-6 h-6 text-accent-foreground" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground">Invite your family</h3>
-                <p className="text-sm text-muted-foreground">
-                  Get rewarded when they join!
-                </p>
-              </div>
-            </div>
-          </CozyCard>
-        </motion.div>
-
-        {/* Code actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="flex gap-3"
-        >
-          <CozyCard
-            className="flex-1 cursor-pointer hover:shadow-cozy transition-all"
-            onClick={() => navigate("/join-family-space")}
-          >
-            <div className="flex flex-col items-center gap-2 py-2">
-              <Search className="w-5 h-5 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Enter code</span>
-            </div>
-          </CozyCard>
-
-          <CozyCard
-            className="flex-1 cursor-pointer hover:shadow-cozy transition-all"
-            onClick={copyFamilyCode}
-          >
-            <div className="flex flex-col items-center gap-2 py-2">
-              <Share2 className="w-5 h-5 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Share code</span>
-            </div>
-          </CozyCard>
-        </motion.div>
-
         {/* Members summary */}
         {people.length > 0 && (
           <motion.div
@@ -345,41 +284,6 @@ const Family = () => {
         )}
       </div>
 
-      {/* Family invite code modal */}
-      {showFamilyInviteCode && familySpace && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-foreground/50 z-50 flex items-center justify-center p-6"
-          onClick={() => setShowFamilyInviteCode(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-card rounded-2xl p-6 w-full max-w-sm shadow-lifted"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="font-display text-xl font-semibold text-center mb-2">
-              Invite to Family Space
-            </h3>
-            <p className="text-muted-foreground text-sm text-center mb-4">
-              Share this code to invite others to your family space
-            </p>
-            <div className="bg-muted rounded-xl p-4 text-center mb-4">
-              <span className="font-mono text-2xl font-bold tracking-widest text-foreground">
-                {familySpace.family_code}
-              </span>
-            </div>
-            <CozyButton
-              variant="primary"
-              className="w-full"
-              onClick={copyFamilyCode}
-            >
-              Copy Code
-            </CozyButton>
-          </motion.div>
-        </motion.div>
-      )}
 
       {/* Edit person modal */}
       {editingPerson && (
