@@ -1,24 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gift, Search, Settings, Share2 } from "lucide-react";
+import { Gift, Search, Settings, Share2, Plus, Users } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyButton from "@/components/ui/CozyButton";
-import FamilyTreeView from "@/components/family/FamilyTreeView";
-import EditMemberModal from "@/components/family/EditMemberModal";
+import FamilyTreeCanvas from "@/components/family/FamilyTreeCanvas";
+import EditPersonModal from "@/components/family/EditPersonModal";
+import AddRelativeModal from "@/components/family/AddRelativeModal";
+import InviteModal from "@/components/family/InviteModal";
+import CreateSelfNodeModal from "@/components/family/CreateSelfNodeModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFamilyTree } from "@/hooks/useFamilyTree";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-
-interface FamilyMember {
-  id: string;
-  display_name: string | null;
-  user_id: string;
-  is_admin: boolean;
-  birthday?: string | null;
-}
+import { Person } from "@/types/family";
 
 interface FamilySpaceData {
   id: string;
@@ -26,28 +23,45 @@ interface FamilySpaceData {
   family_code: string;
 }
 
-
 const Family = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [familySpace, setFamilySpace] = useState<FamilySpaceData | null>(null);
-  const [members, setMembers] = useState<FamilyMember[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const [showInviteCode, setShowInviteCode] = useState(false);
-  const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
+  const [showFamilyInviteCode, setShowFamilyInviteCode] = useState(false);
+  
+  // Modal states
+  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
+  const [addingRelative, setAddingRelative] = useState<{
+    fromPerson: Person;
+    type: 'parent' | 'child' | 'spouse';
+  } | null>(null);
+  const [invitingPerson, setInvitingPerson] = useState<Person | null>(null);
+  const [showCreateSelf, setShowCreateSelf] = useState(false);
+
+  const {
+    people,
+    relationships,
+    loading: treeLoading,
+    currentUserPerson,
+    createSelfNode,
+    addRelative,
+    updatePerson,
+    generateInvite,
+  } = useFamilyTree(familySpace?.id || null);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       navigate("/auth");
       return;
     }
 
     if (user) {
-      fetchFamilyData();
+      fetchFamilySpace();
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, navigate]);
 
-  const fetchFamilyData = async () => {
+  const fetchFamilySpace = async () => {
     if (!user) return;
 
     try {
@@ -72,49 +86,46 @@ const Family = () => {
 
       if (spaceError) throw spaceError;
       setFamilySpace(spaceData);
-
-      const { data: membersData, error: membersError } = await supabase
-        .from("family_members")
-        .select("id, display_name, user_id, is_admin, birthday")
-        .eq("family_space_id", memberData.family_space_id);
-
-      if (membersError) throw membersError;
-      setMembers(membersData || []);
     } catch (error) {
-      console.error("Error fetching family data:", error);
+      console.error("Error fetching family space:", error);
     } finally {
       setDataLoading(false);
     }
   };
 
-  const handleSaveMember = async (id: string, name: string, birthday: Date | null) => {
-    const { error } = await supabase
-      .from("family_members")
-      .update({
-        display_name: name,
-        birthday: birthday ? birthday.toISOString().split("T")[0] : null,
-      })
-      .eq("id", id);
+  // Handlers
+  const handleEditPerson = useCallback((person: Person) => {
+    setEditingPerson(person);
+  }, []);
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update member.",
-        variant: "destructive",
-      });
-      throw error;
-    }
+  const handleAddRelative = useCallback((person: Person, type: 'parent' | 'child' | 'spouse') => {
+    setAddingRelative({ fromPerson: person, type });
+  }, []);
 
-    toast({
-      title: "Updated!",
-      description: "Family member updated successfully.",
-    });
+  const handleInvitePerson = useCallback((person: Person) => {
+    setInvitingPerson(person);
+  }, []);
 
-    // Refresh members list
-    fetchFamilyData();
+  const handleSavePerson = async (
+    personId: string,
+    updates: { first_name: string; last_name?: string; birth_date?: string }
+  ) => {
+    await updatePerson(personId, updates);
   };
 
-  const copyInviteCode = () => {
+  const handleAddRelativeSubmit = async (
+    fromPerson: Person,
+    type: 'parent' | 'child' | 'spouse',
+    name: string
+  ) => {
+    return await addRelative(fromPerson, type, name);
+  };
+
+  const handleCreateSelf = async (firstName: string, lastName?: string) => {
+    await createSelfNode(firstName, lastName);
+  };
+
+  const copyFamilyCode = () => {
     if (familySpace?.family_code) {
       navigator.clipboard.writeText(familySpace.family_code);
       toast({
@@ -124,7 +135,7 @@ const Family = () => {
     }
   };
 
-  if (loading || dataLoading) {
+  if (authLoading || dataLoading) {
     return (
       <MobileLayout className="flex items-center justify-center">
         <div className="w-12 h-12 rounded-full bg-primary/20 animate-pulse" />
@@ -145,7 +156,7 @@ const Family = () => {
         </button>
 
         {/* Title */}
-        <div className="text-center px-6 pt-6">
+        <div className="text-center px-6 pt-6 pb-4">
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -153,18 +164,69 @@ const Family = () => {
           >
             {familySpace?.name || "Your Family"} Tree
           </motion.h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {people.length} member{people.length !== 1 ? 's' : ''} • Tap nodes to interact
+          </p>
         </div>
 
-        {/* Tree visualization */}
-        <FamilyTreeView
-          members={members}
-          onNodeClick={(member) => setEditingMember(member)}
-          onAddClick={() => setShowInviteCode(true)}
-        />
+        {/* Tree visualization or empty state */}
+        <div className="px-4">
+          {treeLoading ? (
+            <div className="h-[350px] rounded-2xl bg-card/50 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-primary/20 animate-pulse" />
+            </div>
+          ) : people.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="h-[350px] rounded-2xl border-4 border-dashed border-yarn-brown/30 bg-card/50 flex flex-col items-center justify-center p-6"
+            >
+              <div className="w-16 h-16 rounded-full bg-secondary/30 flex items-center justify-center mb-4">
+                <Users className="w-8 h-8 text-secondary" />
+              </div>
+              <h3 className="font-display text-lg font-semibold text-foreground mb-2">
+                Start Your Family Tree
+              </h3>
+              <p className="text-sm text-muted-foreground text-center mb-4">
+                Add yourself as the first member to begin building your tree
+              </p>
+              <CozyButton
+                variant="primary"
+                onClick={() => setShowCreateSelf(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Yourself
+              </CozyButton>
+            </motion.div>
+          ) : (
+            <FamilyTreeCanvas
+              people={people}
+              relationships={relationships}
+              currentUserPerson={currentUserPerson}
+              onEditPerson={handleEditPerson}
+              onAddRelative={handleAddRelative}
+              onInvitePerson={handleInvitePerson}
+            />
+          )}
+        </div>
+
+        {/* Add first member button when tree exists but user hasn't created their node */}
+        {people.length > 0 && !currentUserPerson && (
+          <div className="px-6 mt-4">
+            <CozyButton
+              variant="primary"
+              className="w-full"
+              onClick={() => setShowCreateSelf(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Yourself to the Tree
+            </CozyButton>
+          </div>
+        )}
       </div>
 
       {/* Action cards */}
-      <div className="px-6 -mt-2 space-y-3">
+      <div className="px-6 mt-4 space-y-3">
         {/* Invite card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -173,7 +235,7 @@ const Family = () => {
         >
           <CozyCard
             className="cursor-pointer hover:shadow-cozy transition-all"
-            onClick={() => setShowInviteCode(true)}
+            onClick={() => setShowFamilyInviteCode(true)}
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-accent/30 flex items-center justify-center">
@@ -208,7 +270,7 @@ const Family = () => {
 
           <CozyCard
             className="flex-1 cursor-pointer hover:shadow-cozy transition-all"
-            onClick={copyInviteCode}
+            onClick={copyFamilyCode}
           >
             <div className="flex flex-col items-center gap-2 py-2">
               <Share2 className="w-5 h-5 text-muted-foreground" />
@@ -217,54 +279,79 @@ const Family = () => {
           </CozyCard>
         </motion.div>
 
-        {/* Members list */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <h2 className="font-display text-lg font-semibold text-foreground mb-3 mt-4">
-            Family Members ({members.length})
-          </h2>
-          <div className="space-y-2">
-            {members.map((member, index) => (
-              <CozyCard key={member.id} className="py-3">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-primary-foreground font-semibold ${
-                      index % 4 === 0
-                        ? "bg-primary"
-                        : index % 4 === 1
-                        ? "bg-secondary"
-                        : index % 4 === 2
-                        ? "bg-accent text-accent-foreground"
-                        : "bg-teal text-teal-foreground"
-                    }`}
+        {/* Members summary */}
+        {people.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <h2 className="font-display text-lg font-semibold text-foreground mb-3 mt-4">
+              Family Members ({people.length})
+            </h2>
+            <div className="space-y-2">
+              {people.slice(0, 5).map((person, index) => {
+                const fullName = person.last_name 
+                  ? `${person.first_name} ${person.last_name}`
+                  : person.first_name;
+                const isMe = person.user_id === user?.id;
+                
+                return (
+                  <CozyCard 
+                    key={person.id} 
+                    className="py-3 cursor-pointer hover:shadow-cozy transition-all"
+                    onClick={() => handleEditPerson(person)}
                   >
-                    {(member.display_name || "FM")[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">
-                      {member.display_name || "Family Member"}
-                    </p>
-                    {member.is_admin && (
-                      <span className="text-xs text-primary">Admin</span>
-                    )}
-                  </div>
-                </div>
-              </CozyCard>
-            ))}
-          </div>
-        </motion.div>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-primary-foreground font-semibold ${
+                          person.status === 'active'
+                            ? index % 4 === 0
+                              ? "bg-primary"
+                              : index % 4 === 1
+                              ? "bg-secondary"
+                              : index % 4 === 2
+                              ? "bg-accent text-accent-foreground"
+                              : "bg-teal text-teal-foreground"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {person.first_name[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">
+                          {fullName}
+                          {isMe && <span className="text-primary ml-2 text-sm">(You)</span>}
+                        </p>
+                        {person.status !== 'active' && (
+                          <span className={`text-xs ${
+                            person.status === 'invited' ? 'text-accent-foreground' : 'text-muted-foreground'
+                          }`}>
+                            {person.status === 'invited' ? 'Invited' : 'Pending'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </CozyCard>
+                );
+              })}
+              {people.length > 5 && (
+                <p className="text-sm text-muted-foreground text-center">
+                  +{people.length - 5} more members
+                </p>
+              )}
+            </div>
+          </motion.div>
+        )}
       </div>
 
-      {/* Invite code modal */}
-      {showInviteCode && familySpace && (
+      {/* Family invite code modal */}
+      {showFamilyInviteCode && familySpace && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="fixed inset-0 bg-foreground/50 z-50 flex items-center justify-center p-6"
-          onClick={() => setShowInviteCode(false)}
+          onClick={() => setShowFamilyInviteCode(false)}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
@@ -273,10 +360,10 @@ const Family = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="font-display text-xl font-semibold text-center mb-2">
-              Invite Family
+              Invite to Family Space
             </h3>
             <p className="text-muted-foreground text-sm text-center mb-4">
-              Share this code with family members
+              Share this code to invite others to your family space
             </p>
             <div className="bg-muted rounded-xl p-4 text-center mb-4">
               <span className="font-mono text-2xl font-bold tracking-widest text-foreground">
@@ -286,7 +373,7 @@ const Family = () => {
             <CozyButton
               variant="primary"
               className="w-full"
-              onClick={copyInviteCode}
+              onClick={copyFamilyCode}
             >
               Copy Code
             </CozyButton>
@@ -294,12 +381,39 @@ const Family = () => {
         </motion.div>
       )}
 
-      {/* Edit member modal */}
-      {editingMember && (
-        <EditMemberModal
-          member={editingMember}
-          onClose={() => setEditingMember(null)}
-          onSave={handleSaveMember}
+      {/* Edit person modal */}
+      {editingPerson && (
+        <EditPersonModal
+          person={editingPerson}
+          onClose={() => setEditingPerson(null)}
+          onSave={handleSavePerson}
+        />
+      )}
+
+      {/* Add relative modal */}
+      {addingRelative && (
+        <AddRelativeModal
+          fromPerson={addingRelative.fromPerson}
+          relationType={addingRelative.type}
+          onClose={() => setAddingRelative(null)}
+          onAdd={handleAddRelativeSubmit}
+        />
+      )}
+
+      {/* Invite person modal */}
+      {invitingPerson && (
+        <InviteModal
+          person={invitingPerson}
+          onClose={() => setInvitingPerson(null)}
+          onGenerateCode={generateInvite}
+        />
+      )}
+
+      {/* Create self node modal */}
+      {showCreateSelf && (
+        <CreateSelfNodeModal
+          onClose={() => setShowCreateSelf(false)}
+          onCreate={handleCreateSelf}
         />
       )}
 
