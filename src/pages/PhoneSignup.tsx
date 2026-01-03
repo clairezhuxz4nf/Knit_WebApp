@@ -144,11 +144,7 @@ const PhoneSignup = () => {
             description: "Test account logged in successfully.",
           });
           
-          if (intent === "join") {
-            navigate("/join-family-space");
-          } else {
-            navigate("/create-family-space");
-          }
+          navigate("/family-space");
         } else {
           setError("Invalid code. Use 123456 for test mode.");
         }
@@ -175,11 +171,7 @@ const PhoneSignup = () => {
           title: "Welcome to Knit!",
           description: "Your account has been created.",
         });
-        if (intent === "join") {
-          navigate("/join-family-space");
-        } else {
-          navigate("/create-family-space");
-        }
+        navigate("/family-space");
       }
     } catch (err: any) {
       toast({

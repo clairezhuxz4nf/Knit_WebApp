@@ -34,7 +34,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (user && !loading) {
-      navigate("/welcome-page");
+      navigate("/family-space");
     }
   }, [user, loading, navigate]);
 
@@ -148,7 +148,7 @@ const Auth = () => {
             title: "Welcome back!",
             description: "Test account logged in successfully.",
           });
-          navigate("/welcome-page");
+          navigate("/family-space");
         } else {
           setError("Invalid code. Use 123456 for test mode.");
         }
@@ -175,7 +175,7 @@ const Auth = () => {
           title: "Welcome back!",
           description: "You've successfully logged in.",
         });
-        navigate("/welcome-page");
+        navigate("/family-space");
       }
     } catch (err: any) {
       toast({
@@ -193,7 +193,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/welcome-page`,
+          redirectTo: `${window.location.origin}/family-space`,
         },
       });
       if (error) {
