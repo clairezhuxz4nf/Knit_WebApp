@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gift, Search, QrCode, Plus, Settings, Share2 } from "lucide-react";
+import { Gift, Search, Settings, Share2 } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyButton from "@/components/ui/CozyButton";
+import FamilyTreeView from "@/components/family/FamilyTreeView";
+import EditMemberModal from "@/components/family/EditMemberModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -15,6 +17,7 @@ interface FamilyMember {
   display_name: string | null;
   user_id: string;
   is_admin: boolean;
+  birthday?: string | null;
 }
 
 interface FamilySpaceData {
@@ -23,13 +26,6 @@ interface FamilySpaceData {
   family_code: string;
 }
 
-interface TreeNode {
-  id: string;
-  name: string;
-  x: number;
-  y: number;
-  color: string;
-}
 
 const Family = () => {
   const navigate = useNavigate();
@@ -38,6 +34,7 @@ const Family = () => {
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [showInviteCode, setShowInviteCode] = useState(false);
+  const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -78,7 +75,7 @@ const Family = () => {
 
       const { data: membersData, error: membersError } = await supabase
         .from("family_members")
-        .select("id, display_name, user_id, is_admin")
+        .select("id, display_name, user_id, is_admin, birthday")
         .eq("family_space_id", memberData.family_space_id);
 
       if (membersError) throw membersError;
@@ -90,25 +87,31 @@ const Family = () => {
     }
   };
 
-  const generateTreeNodes = (): TreeNode[] => {
-    const colors = ["rose", "sage", "butter", "teal"];
-    const centerX = 150;
-    const centerY = 120;
-    const radius = 80;
+  const handleSaveMember = async (id: string, name: string, birthday: Date | null) => {
+    const { error } = await supabase
+      .from("family_members")
+      .update({
+        display_name: name,
+        birthday: birthday ? birthday.toISOString().split("T")[0] : null,
+      })
+      .eq("id", id);
 
-    return members.map((member, index) => {
-      const angle = (index * 2 * Math.PI) / Math.max(members.length, 1) - Math.PI / 2;
-      const x = index === 0 ? centerX : centerX + radius * Math.cos(angle);
-      const y = index === 0 ? centerY : centerY + radius * Math.sin(angle);
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update member.",
+        variant: "destructive",
+      });
+      throw error;
+    }
 
-      return {
-        id: member.id,
-        name: member.display_name || "Family Member",
-        x,
-        y,
-        color: colors[index % colors.length],
-      };
+    toast({
+      title: "Updated!",
+      description: "Family member updated successfully.",
     });
+
+    // Refresh members list
+    fetchFamilyData();
   };
 
   const copyInviteCode = () => {
@@ -121,8 +124,6 @@ const Family = () => {
     }
   };
 
-  const treeNodes = generateTreeNodes();
-
   if (loading || dataLoading) {
     return (
       <MobileLayout className="flex items-center justify-center">
@@ -134,106 +135,17 @@ const Family = () => {
   return (
     <MobileLayout className="pb-20">
       {/* Header with gradient background */}
-      <div className="relative bg-gradient-to-b from-secondary/40 to-background min-h-[320px]">
+      <div className="relative bg-gradient-to-b from-secondary/40 to-background">
         {/* Settings button */}
         <button
           onClick={() => navigate("/family-settings")}
-          className="absolute top-4 right-4 p-2 rounded-full bg-card/50 backdrop-blur-sm"
+          className="absolute top-4 right-4 p-2 rounded-full bg-card/50 backdrop-blur-sm z-10"
         >
           <Settings className="w-5 h-5 text-muted-foreground" />
         </button>
 
-        {/* Tree visualization */}
-        <div className="relative w-full h-64 flex items-center justify-center">
-          <svg
-            width="300"
-            height="240"
-            viewBox="0 0 300 240"
-            className="overflow-visible"
-          >
-            {/* Connection lines */}
-            {treeNodes.length > 1 &&
-              treeNodes.slice(1).map((node, index) => (
-                <motion.line
-                  key={`line-${node.id}`}
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 0.4 }}
-                  transition={{ delay: index * 0.1 + 0.3, duration: 0.5 }}
-                  x1={treeNodes[0].x}
-                  y1={treeNodes[0].y}
-                  x2={node.x}
-                  y2={node.y}
-                  stroke="hsl(var(--yarn-sage))"
-                  strokeWidth="3"
-                  strokeDasharray="8 4"
-                  strokeLinecap="round"
-                />
-              ))}
-
-            {/* Tree nodes */}
-            {treeNodes.map((node, index) => (
-              <motion.g
-                key={node.id}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: index * 0.1, type: "spring", stiffness: 300 }}
-              >
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={index === 0 ? 35 : 28}
-                  fill={`hsl(var(--yarn-${node.color}))`}
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                />
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={index === 0 ? 30 : 23}
-                  fill="hsl(var(--card))"
-                />
-                <text
-                  x={node.x}
-                  y={node.y}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="fill-foreground text-xs font-medium pointer-events-none"
-                  fontSize={index === 0 ? "11" : "9"}
-                >
-                  {node.name.split(" ")[0].slice(0, 6)}
-                </text>
-              </motion.g>
-            ))}
-
-            {/* Add member button */}
-            <motion.g
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.5, type: "spring" }}
-              onClick={() => setShowInviteCode(true)}
-              className="cursor-pointer"
-            >
-              <circle
-                cx={250}
-                cy={200}
-                r={22}
-                fill="hsl(var(--primary))"
-                className="hover:opacity-80 transition-opacity"
-              />
-              <text
-                x={250}
-                y={200}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="fill-primary-foreground text-lg font-bold"
-              >
-                +
-              </text>
-            </motion.g>
-          </svg>
-        </div>
-
         {/* Title */}
-        <div className="text-center px-6 -mt-4">
+        <div className="text-center px-6 pt-6">
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -241,15 +153,14 @@ const Family = () => {
           >
             {familySpace?.name || "Your Family"} Tree
           </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-muted-foreground text-sm mt-1"
-          >
-            Connect nodes to see stories shared between relatives
-          </motion.p>
         </div>
+
+        {/* Tree visualization */}
+        <FamilyTreeView
+          members={members}
+          onNodeClick={(member) => setEditingMember(member)}
+          onAddClick={() => setShowInviteCode(true)}
+        />
       </div>
 
       {/* Action cards */}
@@ -381,6 +292,15 @@ const Family = () => {
             </CozyButton>
           </motion.div>
         </motion.div>
+      )}
+
+      {/* Edit member modal */}
+      {editingMember && (
+        <EditMemberModal
+          member={editingMember}
+          onClose={() => setEditingMember(null)}
+          onSave={handleSaveMember}
+        />
       )}
 
       <BottomNav />
