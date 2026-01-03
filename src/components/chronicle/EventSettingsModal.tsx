@@ -22,8 +22,17 @@ interface CustomEvent {
   icon: string;
 }
 
+interface WesternFestival {
+  id: string;
+  name: string;
+  month: number;
+  day: number;
+  icon: string;
+  enabled: boolean;
+}
+
 interface EventSettings {
-  showWesternFestivals: boolean;
+  westernFestivals: WesternFestival[];
   showBirthdays: boolean;
   anniversaries: { id: string; title: string; month: number; day: number }[];
   customEvents: CustomEvent[];
@@ -36,12 +45,12 @@ interface EventSettingsModalProps {
   onSave: (settings: EventSettings) => void;
 }
 
-const WESTERN_FESTIVALS = [
-  { name: "Christmas", icon: "🎄" },
-  { name: "Thanksgiving", icon: "🦃" },
-  { name: "Easter", icon: "🐣" },
-  { name: "Halloween", icon: "🎃" },
-  { name: "Valentine's Day", icon: "💝" },
+const DEFAULT_WESTERN_FESTIVALS: WesternFestival[] = [
+  { id: "christmas", name: "Christmas", month: 11, day: 25, icon: "🎄", enabled: true },
+  { id: "thanksgiving", name: "Thanksgiving", month: 10, day: 28, icon: "🦃", enabled: true },
+  { id: "easter", name: "Easter", month: 3, day: 20, icon: "🐣", enabled: true },
+  { id: "halloween", name: "Halloween", month: 9, day: 31, icon: "🎃", enabled: true },
+  { id: "valentines", name: "Valentine's Day", month: 1, day: 14, icon: "💝", enabled: true },
 ];
 
 const MONTHS = [
@@ -143,41 +152,43 @@ const EventSettingsModal = ({ isOpen, onClose, settings, onSave }: EventSettings
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Western Festivals Toggle */}
+              {/* Western Festivals Section */}
               <CozyCard variant="default">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-yarn-sage/20 flex items-center justify-center">
-                      <Gift className="w-5 h-5 text-yarn-sage" />
-                    </div>
-                    <div>
-                      <Label className="text-base font-semibold">Western Festivals</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Christmas, Thanksgiving, Easter...
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-yarn-sage/20 flex items-center justify-center">
+                    <Gift className="w-5 h-5 text-yarn-sage" />
                   </div>
-                  <Switch
-                    checked={localSettings.showWesternFestivals}
-                    onCheckedChange={(checked) =>
-                      setLocalSettings({ ...localSettings, showWesternFestivals: checked })
-                    }
-                  />
+                  <div>
+                    <Label className="text-base font-semibold">Western Festivals</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Select which festivals to show
+                    </p>
+                  </div>
                 </div>
-                {localSettings.showWesternFestivals && (
-                  <div className="mt-4 pt-4 border-t border-border/50">
-                    <div className="flex flex-wrap gap-2">
-                      {WESTERN_FESTIVALS.map((festival) => (
-                        <span
-                          key={festival.name}
-                          className="text-xs bg-yarn-sage/10 text-yarn-sage px-2 py-1 rounded-full"
-                        >
-                          {festival.icon} {festival.name}
-                        </span>
-                      ))}
+                <div className="space-y-2">
+                  {localSettings.westernFestivals.map((festival) => (
+                    <div
+                      key={festival.id}
+                      className="flex items-center justify-between p-3 bg-muted/30 rounded-xl"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{festival.icon}</span>
+                        <span className="font-medium text-sm">{festival.name}</span>
+                      </div>
+                      <Switch
+                        checked={festival.enabled}
+                        onCheckedChange={(checked) => {
+                          setLocalSettings({
+                            ...localSettings,
+                            westernFestivals: localSettings.westernFestivals.map((f) =>
+                              f.id === festival.id ? { ...f, enabled: checked } : f
+                            ),
+                          });
+                        }}
+                      />
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
               </CozyCard>
 
               {/* Birthdays Toggle */}

@@ -18,15 +18,32 @@ interface FamilyMember {
   birthday: string | null;
 }
 
+interface WesternFestival {
+  id: string;
+  name: string;
+  month: number;
+  day: number;
+  icon: string;
+  enabled: boolean;
+}
+
 interface EventSettings {
-  showWesternFestivals: boolean;
+  westernFestivals: WesternFestival[];
   showBirthdays: boolean;
   anniversaries: { id: string; title: string; month: number; day: number }[];
   customEvents: { id: string; title: string; month: number; day: number; icon: string }[];
 }
 
+const DEFAULT_WESTERN_FESTIVALS: WesternFestival[] = [
+  { id: "christmas", name: "Christmas", month: 11, day: 25, icon: "🎄", enabled: true },
+  { id: "thanksgiving", name: "Thanksgiving", month: 10, day: 28, icon: "🦃", enabled: true },
+  { id: "easter", name: "Easter", month: 3, day: 20, icon: "🐣", enabled: true },
+  { id: "halloween", name: "Halloween", month: 9, day: 31, icon: "🎃", enabled: true },
+  { id: "valentines", name: "Valentine's Day", month: 1, day: 14, icon: "💝", enabled: true },
+];
+
 const DEFAULT_SETTINGS: EventSettings = {
-  showWesternFestivals: true,
+  westernFestivals: DEFAULT_WESTERN_FESTIVALS,
   showBirthdays: true,
   anniversaries: [],
   customEvents: [],
@@ -40,7 +57,28 @@ const EventChronicle = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [eventSettings, setEventSettings] = useState<EventSettings>(() => {
     const saved = localStorage.getItem("eventChronicleSettings");
-    return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Migrate old format to new format
+      if (parsed.showWesternFestivals !== undefined && !parsed.westernFestivals) {
+        return {
+          ...DEFAULT_SETTINGS,
+          westernFestivals: DEFAULT_WESTERN_FESTIVALS.map(f => ({
+            ...f,
+            enabled: parsed.showWesternFestivals
+          })),
+          showBirthdays: parsed.showBirthdays ?? true,
+          anniversaries: parsed.anniversaries ?? [],
+          customEvents: parsed.customEvents ?? [],
+        };
+      }
+      // Ensure westernFestivals exists
+      if (!parsed.westernFestivals) {
+        return { ...DEFAULT_SETTINGS, ...parsed, westernFestivals: DEFAULT_WESTERN_FESTIVALS };
+      }
+      return parsed;
+    }
+    return DEFAULT_SETTINGS;
   });
 
   useEffect(() => {
@@ -116,31 +154,31 @@ const EventChronicle = () => {
       });
     }
 
-    // Add western holidays
-    if (eventSettings.showWesternFestivals) {
-      const holidays = [
-        { id: "christmas", title: "Christmas", month: 11, day: 25, icon: "🎄", color: "sage" as const },
-        { id: "thanksgiving", title: "Thanksgiving", month: 10, day: 28, icon: "🦃", color: "teal" as const },
-        { id: "easter", title: "Easter", month: 3, day: 20, icon: "🐣", color: "butter" as const },
-        { id: "halloween", title: "Halloween", month: 9, day: 31, icon: "🎃", color: "butter" as const },
-        { id: "valentines", title: "Valentine's Day", month: 1, day: 14, icon: "💝", color: "rose" as const },
-      ];
+    // Add western holidays (only enabled ones)
+    const colorMap: Record<string, "rose" | "sage" | "butter" | "teal"> = {
+      christmas: "sage",
+      thanksgiving: "teal",
+      easter: "butter",
+      halloween: "butter",
+      valentines: "rose",
+    };
 
-      holidays.forEach((holiday) => {
-        let holidayDate = new Date(year, holiday.month, holiday.day);
+    eventSettings.westernFestivals
+      .filter((festival) => festival.enabled)
+      .forEach((festival) => {
+        let holidayDate = new Date(year, festival.month, festival.day);
         if (holidayDate < today) {
-          holidayDate = new Date(year + 1, holiday.month, holiday.day);
+          holidayDate = new Date(year + 1, festival.month, festival.day);
         }
         events.push({
-          id: holiday.id,
-          title: holiday.title,
+          id: festival.id,
+          title: festival.name,
           date: holidayDate,
           type: "holiday",
-          icon: holiday.icon,
-          color: holiday.color,
+          icon: festival.icon,
+          color: colorMap[festival.id] || ("sage" as const),
         });
       });
-    }
 
     // Add anniversaries
     eventSettings.anniversaries.forEach((ann) => {
