@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Trash2, Calendar, Gift, Heart, Star } from "lucide-react";
+import { X, Plus, Trash2, Calendar, Gift, Heart, Star, Eye, EyeOff } from "lucide-react";
 import CozyButton from "@/components/ui/CozyButton";
 import CozyCard from "@/components/ui/CozyCard";
 import { Switch } from "@/components/ui/switch";
@@ -13,112 +13,189 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
-interface CustomEvent {
+interface DbEvent {
   id: string;
   title: string;
-  month: number;
-  day: number;
-  icon: string;
-}
-
-interface WesternFestival {
-  id: string;
-  name: string;
-  month: number;
-  day: number;
-  icon: string;
-  enabled: boolean;
+  event_date: string;
+  event_type: string;
+  event_category: string;
+  icon: string | null;
+  is_recurring: boolean;
+  family_space_id: string;
+  person_id: string | null;
 }
 
 interface EventSettings {
-  westernFestivals: WesternFestival[];
-  showBirthdays: boolean;
-  anniversaries: { id: string; title: string; month: number; day: number }[];
-  customEvents: CustomEvent[];
+  hiddenEventIds: string[];
+  hiddenCategories: string[];
 }
 
 interface EventSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  events: DbEvent[];
   settings: EventSettings;
   onSave: (settings: EventSettings) => void;
+  familySpaceId: string | null;
+  onEventsChange: () => void;
 }
-
-const DEFAULT_WESTERN_FESTIVALS: WesternFestival[] = [
-  { id: "christmas", name: "Christmas", month: 11, day: 25, icon: "🎄", enabled: true },
-  { id: "thanksgiving", name: "Thanksgiving", month: 10, day: 28, icon: "🦃", enabled: true },
-  { id: "easter", name: "Easter", month: 3, day: 20, icon: "🐣", enabled: true },
-  { id: "halloween", name: "Halloween", month: 9, day: 31, icon: "🎃", enabled: true },
-  { id: "valentines", name: "Valentine's Day", month: 1, day: 14, icon: "💝", enabled: true },
-];
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
 
-const ICONS = ["🎉", "🎊", "💫", "⭐", "🌟", "💖", "🎁", "🏠", "✈️", "🎓", "💍", "🎂"];
+const ICONS = ["🎉", "🎊", "💫", "⭐", "🌟", "💖", "🎁", "🏠", "✈️", "🎓", "💍", "🎂", "🎄", "🦃", "🐣", "🎃", "💝"];
 
-const EventSettingsModal = ({ isOpen, onClose, settings, onSave }: EventSettingsModalProps) => {
+const CATEGORY_LABELS: Record<string, string> = {
+  birthday: "Birthdays",
+  festival: "Festivals",
+  anniversary: "Anniversaries",
+  custom: "Custom Events",
+  general: "General Events",
+};
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  birthday: <Calendar className="w-5 h-5 text-yarn-rose" />,
+  festival: <Gift className="w-5 h-5 text-yarn-sage" />,
+  anniversary: <Heart className="w-5 h-5 text-yarn-butter" />,
+  custom: <Star className="w-5 h-5 text-yarn-teal" />,
+  general: <Calendar className="w-5 h-5 text-yarn-teal" />,
+};
+
+const EventSettingsModal = ({
+  isOpen,
+  onClose,
+  events,
+  settings,
+  onSave,
+  familySpaceId,
+  onEventsChange,
+}: EventSettingsModalProps) => {
+  const { user } = useAuth();
   const [localSettings, setLocalSettings] = useState<EventSettings>(settings);
-  const [newAnniversary, setNewAnniversary] = useState({ title: "", month: 0, day: 1 });
-  const [newCustomEvent, setNewCustomEvent] = useState({ title: "", month: 0, day: 1, icon: "🎉" });
-  const [showAddAnniversary, setShowAddAnniversary] = useState(false);
-  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [showAddEvent, setShowAddEvent] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    month: 0,
+    day: 1,
+    icon: "🎉",
+    category: "custom" as string,
+    isRecurring: true,
+  });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
 
-  const handleSave = () => {
-    onSave(localSettings);
-    onClose();
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // Update user_event_settings for backward compatibility
+      if (user) {
+        await supabase
+          .from("user_event_settings")
+          .upsert({
+            user_id: user.id,
+            show_birthdays: !localSettings.hiddenCategories.includes("birthday"),
+            western_festivals: events
+              .filter((e) => e.event_category === "festival")
+              .map((e) => ({
+                id: e.id,
+                name: e.title,
+                enabled: !localSettings.hiddenEventIds.includes(e.id),
+              })),
+          });
+      }
+      onSave(localSettings);
+      onClose();
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast.error("Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const addAnniversary = () => {
-    if (!newAnniversary.title.trim()) return;
+  const toggleEventVisibility = (eventId: string) => {
+    const isHidden = localSettings.hiddenEventIds.includes(eventId);
     setLocalSettings({
       ...localSettings,
-      anniversaries: [
-        ...localSettings.anniversaries,
-        { ...newAnniversary, id: `ann-${Date.now()}` }
-      ]
+      hiddenEventIds: isHidden
+        ? localSettings.hiddenEventIds.filter((id) => id !== eventId)
+        : [...localSettings.hiddenEventIds, eventId],
     });
-    setNewAnniversary({ title: "", month: 0, day: 1 });
-    setShowAddAnniversary(false);
   };
 
-  const removeAnniversary = (id: string) => {
+  const toggleCategoryVisibility = (category: string) => {
+    const isHidden = localSettings.hiddenCategories.includes(category);
     setLocalSettings({
       ...localSettings,
-      anniversaries: localSettings.anniversaries.filter(a => a.id !== id)
-    });
-  };
-
-  const addCustomEvent = () => {
-    if (!newCustomEvent.title.trim()) return;
-    setLocalSettings({
-      ...localSettings,
-      customEvents: [
-        ...localSettings.customEvents,
-        { ...newCustomEvent, id: `custom-${Date.now()}` }
-      ]
-    });
-    setNewCustomEvent({ title: "", month: 0, day: 1, icon: "🎉" });
-    setShowAddCustom(false);
-  };
-
-  const removeCustomEvent = (id: string) => {
-    setLocalSettings({
-      ...localSettings,
-      customEvents: localSettings.customEvents.filter(e => e.id !== id)
+      hiddenCategories: isHidden
+        ? localSettings.hiddenCategories.filter((c) => c !== category)
+        : [...localSettings.hiddenCategories, category],
     });
   };
 
   const getDaysInMonth = (month: number) => {
     return new Date(2024, month + 1, 0).getDate();
   };
+
+  const addNewEvent = async () => {
+    if (!newEvent.title.trim() || !familySpaceId || !user) return;
+
+    try {
+      const eventDate = new Date(new Date().getFullYear(), newEvent.month, newEvent.day);
+
+      const { error } = await supabase.from("events").insert({
+        family_space_id: familySpaceId,
+        created_by: user.id,
+        title: newEvent.title,
+        event_date: eventDate.toISOString().split("T")[0],
+        event_type: newEvent.category,
+        event_category: newEvent.category,
+        icon: newEvent.icon,
+        is_recurring: newEvent.isRecurring,
+      });
+
+      if (error) throw error;
+
+      toast.success("Event added!");
+      setNewEvent({ title: "", month: 0, day: 1, icon: "🎉", category: "custom", isRecurring: true });
+      setShowAddEvent(false);
+      onEventsChange();
+    } catch (error) {
+      console.error("Error adding event:", error);
+      toast.error("Failed to add event");
+    }
+  };
+
+  const deleteEvent = async (eventId: string) => {
+    try {
+      const { error } = await supabase.from("events").delete().eq("id", eventId);
+      if (error) throw error;
+      toast.success("Event deleted");
+      onEventsChange();
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      toast.error("Failed to delete event");
+    }
+  };
+
+  // Group events by category
+  const eventsByCategory = events.reduce((acc, event) => {
+    const category = event.event_category || "custom";
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(event);
+    return acc;
+  }, {} as Record<string, DbEvent[]>);
+
+  const categories = Object.keys(eventsByCategory).sort();
 
   return (
     <AnimatePresence>
@@ -148,284 +225,219 @@ const EventSettingsModal = ({ isOpen, onClose, settings, onSave }: EventSettings
                   <X className="w-5 h-5" />
                 </button>
                 <h2 className="font-display text-xl font-semibold text-foreground">
-                  Event Settings
+                  Manage Events
                 </h2>
               </div>
-              <CozyButton variant="primary" size="sm" onClick={handleSave}>
-                Save
+              <CozyButton variant="primary" size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? "Saving..." : "Save"}
               </CozyButton>
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Western Festivals Section */}
-              <CozyCard variant="default">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-yarn-sage/20 flex items-center justify-center">
-                    <Gift className="w-5 h-5 text-yarn-sage" />
-                  </div>
-                  <div>
-                    <Label className="text-base font-semibold">Western Festivals</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Select which festivals to show
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {localSettings.westernFestivals.map((festival) => (
-                    <div
-                      key={festival.id}
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-xl"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">{festival.icon}</span>
-                        <span className="font-medium text-sm">{festival.name}</span>
-                      </div>
-                      <Switch
-                        checked={festival.enabled}
-                        onCheckedChange={(checked) => {
-                          setLocalSettings({
-                            ...localSettings,
-                            westernFestivals: localSettings.westernFestivals.map((f) =>
-                              f.id === festival.id ? { ...f, enabled: checked } : f
-                            ),
-                          });
-                        }}
+              {/* Add New Event Button */}
+              <CozyButton
+                variant="secondary"
+                fullWidth
+                onClick={() => setShowAddEvent(!showAddEvent)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add New Event
+              </CozyButton>
+
+              {/* Add Event Form */}
+              {showAddEvent && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="space-y-4"
+                >
+                  <CozyCard variant="default">
+                    <div className="space-y-4">
+                      <Input
+                        placeholder="Event title..."
+                        value={newEvent.title}
+                        onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                        className="bg-background"
                       />
-                    </div>
-                  ))}
-                </div>
-              </CozyCard>
 
-              {/* Birthdays Toggle */}
-              <CozyCard variant="default">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-yarn-rose/20 flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-yarn-rose" />
-                    </div>
-                    <div>
-                      <Label className="text-base font-semibold">Family Birthdays</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Show family members' birthdays
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={localSettings.showBirthdays}
-                    onCheckedChange={(checked) =>
-                      setLocalSettings({ ...localSettings, showBirthdays: checked })
-                    }
-                  />
-                </div>
-              </CozyCard>
-
-              {/* Anniversaries Section */}
-              <CozyCard variant="default">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-yarn-butter/20 flex items-center justify-center">
-                      <Heart className="w-5 h-5 text-yarn-butter" />
-                    </div>
-                    <div>
-                      <Label className="text-base font-semibold">Anniversaries</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Wedding, relationship milestones
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowAddAnniversary(!showAddAnniversary)}
-                    className="p-2 rounded-full hover:bg-muted transition-colors"
-                  >
-                    <Plus className="w-5 h-5 text-primary" />
-                  </button>
-                </div>
-
-                {showAddAnniversary && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="space-y-3 mb-4 p-4 bg-muted/50 rounded-xl"
-                  >
-                    <Input
-                      placeholder="Anniversary title..."
-                      value={newAnniversary.title}
-                      onChange={(e) => setNewAnniversary({ ...newAnniversary, title: e.target.value })}
-                      className="bg-background"
-                    />
-                    <div className="flex gap-2">
-                      <Select
-                        value={String(newAnniversary.month)}
-                        onValueChange={(v) => setNewAnniversary({ ...newAnniversary, month: parseInt(v) })}
-                      >
-                        <SelectTrigger className="flex-1 bg-background">
-                          <SelectValue placeholder="Month" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MONTHS.map((month, i) => (
-                            <SelectItem key={month} value={String(i)}>{month}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        value={String(newAnniversary.day)}
-                        onValueChange={(v) => setNewAnniversary({ ...newAnniversary, day: parseInt(v) })}
-                      >
-                        <SelectTrigger className="w-24 bg-background">
-                          <SelectValue placeholder="Day" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: getDaysInMonth(newAnniversary.month) }, (_, i) => (
-                            <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <CozyButton variant="primary" size="sm" onClick={addAnniversary} fullWidth>
-                      Add Anniversary
-                    </CozyButton>
-                  </motion.div>
-                )}
-
-                {localSettings.anniversaries.length > 0 && (
-                  <div className="space-y-2">
-                    {localSettings.anniversaries.map((ann) => (
-                      <div
-                        key={ann.id}
-                        className="flex items-center justify-between p-3 bg-muted/30 rounded-xl"
-                      >
-                        <div>
-                          <p className="font-medium text-sm">{ann.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {MONTHS[ann.month]} {ann.day}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => removeAnniversary(ann.id)}
-                          className="p-2 rounded-full hover:bg-destructive/10 transition-colors"
+                      <div className="flex gap-2">
+                        <Select
+                          value={String(newEvent.month)}
+                          onValueChange={(v) => setNewEvent({ ...newEvent, month: parseInt(v) })}
                         >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </button>
+                          <SelectTrigger className="flex-1 bg-background">
+                            <SelectValue placeholder="Month" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MONTHS.map((month, i) => (
+                              <SelectItem key={month} value={String(i)}>
+                                {month}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={String(newEvent.day)}
+                          onValueChange={(v) => setNewEvent({ ...newEvent, day: parseInt(v) })}
+                        >
+                          <SelectTrigger className="w-24 bg-background">
+                            <SelectValue placeholder="Day" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: getDaysInMonth(newEvent.month) }, (_, i) => (
+                              <SelectItem key={i + 1} value={String(i + 1)}>
+                                {i + 1}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CozyCard>
 
-              {/* Custom Events Section */}
-              <CozyCard variant="default">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-yarn-teal/20 flex items-center justify-center">
-                      <Star className="w-5 h-5 text-yarn-teal" />
-                    </div>
-                    <div>
-                      <Label className="text-base font-semibold">Custom Events</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Add your own special dates
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowAddCustom(!showAddCustom)}
-                    className="p-2 rounded-full hover:bg-muted transition-colors"
-                  >
-                    <Plus className="w-5 h-5 text-primary" />
-                  </button>
-                </div>
-
-                {showAddCustom && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="space-y-3 mb-4 p-4 bg-muted/50 rounded-xl"
-                  >
-                    <Input
-                      placeholder="Event title..."
-                      value={newCustomEvent.title}
-                      onChange={(e) => setNewCustomEvent({ ...newCustomEvent, title: e.target.value })}
-                      className="bg-background"
-                    />
-                    <div className="flex gap-2">
                       <Select
-                        value={String(newCustomEvent.month)}
-                        onValueChange={(v) => setNewCustomEvent({ ...newCustomEvent, month: parseInt(v) })}
+                        value={newEvent.category}
+                        onValueChange={(v) => setNewEvent({ ...newEvent, category: v })}
                       >
-                        <SelectTrigger className="flex-1 bg-background">
-                          <SelectValue placeholder="Month" />
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {MONTHS.map((month, i) => (
-                            <SelectItem key={month} value={String(i)}>{month}</SelectItem>
-                          ))}
+                          <SelectItem value="custom">Custom Event</SelectItem>
+                          <SelectItem value="anniversary">Anniversary</SelectItem>
+                          <SelectItem value="festival">Festival</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Select
-                        value={String(newCustomEvent.day)}
-                        onValueChange={(v) => setNewCustomEvent({ ...newCustomEvent, day: parseInt(v) })}
-                      >
-                        <SelectTrigger className="w-24 bg-background">
-                          <SelectValue placeholder="Day" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: getDaysInMonth(newCustomEvent.month) }, (_, i) => (
-                            <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
+
+                      <div>
+                        <Label className="text-xs text-muted-foreground mb-2 block">
+                          Choose an icon
+                        </Label>
+                        <div className="flex flex-wrap gap-2">
+                          {ICONS.map((icon) => (
+                            <button
+                              key={icon}
+                              onClick={() => setNewEvent({ ...newEvent, icon })}
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all ${
+                                newEvent.icon === icon
+                                  ? "bg-primary/20 ring-2 ring-primary"
+                                  : "bg-muted hover:bg-muted/80"
+                              }`}
+                            >
+                              {icon}
+                            </button>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm">Repeats yearly</Label>
+                        <Switch
+                          checked={newEvent.isRecurring}
+                          onCheckedChange={(checked) =>
+                            setNewEvent({ ...newEvent, isRecurring: checked })
+                          }
+                        />
+                      </div>
+
+                      <CozyButton variant="primary" size="sm" onClick={addNewEvent} fullWidth>
+                        Add Event
+                      </CozyButton>
                     </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-2 block">Choose an icon</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {ICONS.map((icon) => (
-                          <button
-                            key={icon}
-                            onClick={() => setNewCustomEvent({ ...newCustomEvent, icon })}
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all ${
-                              newCustomEvent.icon === icon
-                                ? "bg-primary/20 ring-2 ring-primary"
-                                : "bg-muted hover:bg-muted/80"
-                            }`}
-                          >
-                            {icon}
-                          </button>
-                        ))}
+                  </CozyCard>
+                </motion.div>
+              )}
+
+              {/* Events by Category */}
+              {categories.map((category) => (
+                <CozyCard key={category} variant="default">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                        {CATEGORY_ICONS[category] || CATEGORY_ICONS.custom}
+                      </div>
+                      <div>
+                        <Label className="text-base font-semibold">
+                          {CATEGORY_LABELS[category] || category}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {eventsByCategory[category].length} events
+                        </p>
                       </div>
                     </div>
-                    <CozyButton variant="primary" size="sm" onClick={addCustomEvent} fullWidth>
-                      Add Custom Event
-                    </CozyButton>
-                  </motion.div>
-                )}
+                    {category !== "birthday" && (
+                      <Switch
+                        checked={!localSettings.hiddenCategories.includes(category)}
+                        onCheckedChange={() => toggleCategoryVisibility(category)}
+                      />
+                    )}
+                    {category === "birthday" && (
+                      <Switch
+                        checked={!localSettings.hiddenCategories.includes("birthday")}
+                        onCheckedChange={() => toggleCategoryVisibility("birthday")}
+                      />
+                    )}
+                  </div>
 
-                {localSettings.customEvents.length > 0 && (
                   <div className="space-y-2">
-                    {localSettings.customEvents.map((event) => (
-                      <div
-                        key={event.id}
-                        className="flex items-center justify-between p-3 bg-muted/30 rounded-xl"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl">{event.icon}</span>
-                          <div>
-                            <p className="font-medium text-sm">{event.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {MONTHS[event.month]} {event.day}
-                            </p>
+                    {eventsByCategory[category].map((event) => {
+                      const isHidden = localSettings.hiddenEventIds.includes(event.id);
+                      const canDelete = event.event_category !== "birthday";
+
+                      return (
+                        <div
+                          key={event.id}
+                          className={`flex items-center justify-between p-3 rounded-xl transition-colors ${
+                            isHidden ? "bg-muted/20 opacity-60" : "bg-muted/30"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <span className="text-xl">{event.icon || "📅"}</span>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{event.title}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(event.event_date).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                                {event.is_recurring && " • Yearly"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleEventVisibility(event.id)}
+                              className="p-2 rounded-full hover:bg-muted transition-colors"
+                              title={isHidden ? "Show event" : "Hide event"}
+                            >
+                              {isHidden ? (
+                                <EyeOff className="w-4 h-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="w-4 h-4 text-muted-foreground" />
+                              )}
+                            </button>
+                            {canDelete && (
+                              <button
+                                onClick={() => deleteEvent(event.id)}
+                                className="p-2 rounded-full hover:bg-destructive/10 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </button>
+                            )}
                           </div>
                         </div>
-                        <button
-                          onClick={() => removeCustomEvent(event.id)}
-                          className="p-2 rounded-full hover:bg-destructive/10 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                )}
-              </CozyCard>
+                </CozyCard>
+              ))}
 
+              {events.length === 0 && (
+                <CozyCard className="text-center py-8">
+                  <p className="text-muted-foreground text-sm">
+                    No events yet. Add birthdays to family members or create custom events above.
+                  </p>
+                </CozyCard>
+              )}
             </div>
           </motion.div>
         </>

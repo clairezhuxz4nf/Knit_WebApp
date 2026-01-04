@@ -20,10 +20,14 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          event_category: string
           event_date: string
           event_type: string
           family_space_id: string
+          icon: string | null
           id: string
+          is_recurring: boolean
+          person_id: string | null
           title: string
           updated_at: string
         }
@@ -32,10 +36,14 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          event_category?: string
           event_date: string
           event_type?: string
           family_space_id: string
+          icon?: string | null
           id?: string
+          is_recurring?: boolean
+          person_id?: string | null
           title: string
           updated_at?: string
         }
@@ -44,10 +52,14 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          event_category?: string
           event_date?: string
           event_type?: string
           family_space_id?: string
+          icon?: string | null
           id?: string
+          is_recurring?: boolean
+          person_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -57,6 +69,13 @@ export type Database = {
             columns: ["family_space_id"]
             isOneToOne: false
             referencedRelation: "family_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
