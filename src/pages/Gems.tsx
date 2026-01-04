@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight, Plus, X, Loader2 } from "lucide-react";
+import { ChevronRight, Plus, X, Loader2, Camera, ImagePlus } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
@@ -31,9 +31,12 @@ const Gems = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<FamilyPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [familySpaceId, setFamilySpaceId] = useState<string | null>(null);
+  const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<FamilyPhoto | null>(null);
 
   const categories: AssetCategory[] = [
@@ -52,7 +55,7 @@ const Gems = () => {
     const fetchData = async () => {
       if (!user) return;
 
-      // Get user's family space
+      // Get user's family space with cover photo
       const { data: memberData } = await supabase
         .from("family_members")
         .select("family_space_id")
@@ -61,6 +64,17 @@ const Gems = () => {
 
       if (memberData) {
         setFamilySpaceId(memberData.family_space_id);
+
+        // Fetch family space for cover photo
+        const { data: spaceData } = await supabase
+          .from("family_spaces")
+          .select("cover_photo_url")
+          .eq("id", memberData.family_space_id)
+          .single();
+
+        if (spaceData?.cover_photo_url) {
+          setCoverPhotoUrl(spaceData.cover_photo_url);
+        }
 
         // Fetch photos
         const { data: photosData } = await supabase
@@ -77,6 +91,52 @@ const Gems = () => {
 
     fetchData();
   }, [user]);
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !familySpaceId) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `covers/${familySpaceId}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("family-gems")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("family-gems")
+        .getPublicUrl(filePath);
+
+      // Update family space with cover photo
+      const { error: updateError } = await supabase
+        .from("family_spaces")
+        .update({ cover_photo_url: urlData.publicUrl })
+        .eq("id", familySpaceId);
+
+      if (updateError) throw updateError;
+
+      setCoverPhotoUrl(urlData.publicUrl);
+      toast.success("Family photo uploaded!");
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast.error(error.message || "Failed to upload photo");
+    } finally {
+      setUploadingCover(false);
+      if (coverInputRef.current) {
+        coverInputRef.current.value = "";
+      }
+    }
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -165,57 +225,64 @@ const Gems = () => {
         </motion.div>
       </div>
 
-      {/* Overview Card */}
+      {/* Family Cover Photo Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className="px-6 mb-6"
       >
-        <CozyCard>
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-yarn-butter/30 flex items-center justify-center text-2xl">
-              💎
+        {coverPhotoUrl ? (
+          <div 
+            className="relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group"
+            onClick={() => coverInputRef.current?.click()}
+          >
+            <img 
+              src={coverPhotoUrl} 
+              alt="Family photo" 
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-3">
+                <Camera className="w-5 h-5 text-foreground" />
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-sm text-muted-foreground">Total Treasures</p>
-              <p className="font-display text-xl font-bold text-foreground">
-                {totalItems} Items
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Across {categories.length} collections
-              </p>
+            <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
+              <p className="text-xs font-medium text-foreground">Tap to change</p>
             </div>
           </div>
-        </CozyCard>
+        ) : (
+          <div 
+            className="aspect-[4/3] rounded-2xl border-2 border-dashed border-muted-foreground/30 bg-muted/30 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
+            onClick={() => coverInputRef.current?.click()}
+          >
+            {uploadingCover ? (
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-full bg-yarn-rose/20 flex items-center justify-center mb-3">
+                  <ImagePlus className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="font-display text-lg font-semibold text-foreground mb-1">
+                  Add a Family Photo
+                </h3>
+                <p className="text-sm text-muted-foreground text-center px-4">
+                  Upload a photo that represents your family
+                </p>
+              </>
+            )}
+          </div>
+        )}
       </motion.div>
 
-      {/* Photos Grid */}
-      {photos.length > 0 && (
-        <div className="px-6 mb-6">
-          <h2 className="font-display text-lg font-semibold text-foreground mb-3">
-            Recent Photos
-          </h2>
-          <div className="grid grid-cols-3 gap-2">
-            {photos.slice(0, 6).map((photo, index) => (
-              <motion.div
-                key={photo.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                className="aspect-square rounded-xl overflow-hidden cursor-pointer"
-                onClick={() => setSelectedPhoto(photo)}
-              >
-                <img
-                  src={getPhotoUrl(photo.file_path)}
-                  alt={photo.file_name}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform"
-                />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Hidden cover file input */}
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleCoverUpload}
+        className="hidden"
+      />
 
       {/* Categories */}
       <div className="px-6">
@@ -260,35 +327,9 @@ const Gems = () => {
             </motion.div>
           ))}
         </div>
-
-        {/* Empty state hint */}
-        {totalItems === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            <CozyCard className="text-center py-8">
-              <div className="text-4xl mb-3">✨</div>
-              <h3 className="font-display text-lg font-semibold text-foreground mb-2">
-                Start Your Collection
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Capture moments and stories to fill your treasure chest
-              </p>
-              <CozyButton
-                variant="primary"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!familySpaceId}
-              >
-                Upload First Photo
-              </CozyButton>
-            </CozyCard>
-          </motion.div>
-        )}
       </div>
 
-      {/* Hidden file input */}
+      {/* Hidden file input for photos */}
       <input
         ref={fileInputRef}
         type="file"

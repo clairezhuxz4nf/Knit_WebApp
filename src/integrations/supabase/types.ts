@@ -193,6 +193,7 @@ export type Database = {
       }
       family_spaces: {
         Row: {
+          cover_photo_url: string | null
           created_at: string
           created_by: string
           family_code: string
@@ -201,6 +202,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cover_photo_url?: string | null
           created_at?: string
           created_by: string
           family_code: string
@@ -209,6 +211,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cover_photo_url?: string | null
           created_at?: string
           created_by?: string
           family_code?: string
