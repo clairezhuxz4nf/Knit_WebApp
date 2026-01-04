@@ -1,116 +1,152 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Image, BookOpen, FileText, Sparkles } from "lucide-react";
+import { Image, BookOpen, FileText, ChevronRight } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
-import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
-import YarnDecoration from "@/components/ui/YarnDecoration";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 
 interface AssetCategory {
   id: string;
   title: string;
-  icon: React.ElementType;
+  description: string;
+  icon: string;
   count: number;
-  color: string;
+  color: "rose" | "butter" | "sage";
 }
 
 const Gems = () => {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<AssetCategory[]>([
-    { id: "photos", title: "Photos", icon: Image, count: 0, color: "bg-rose-100 text-rose-600" },
-    { id: "stories", title: "Stories", icon: FileText, count: 0, color: "bg-amber-100 text-amber-600" },
-    { id: "storybooks", title: "Storybooks", icon: BookOpen, count: 0, color: "bg-emerald-100 text-emerald-600" },
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const [categories] = useState<AssetCategory[]>([
+    { id: "photos", title: "Photos", description: "Family pictures and albums", icon: "📸", count: 0, color: "rose" },
+    { id: "stories", title: "Stories", description: "Written memories and tales", icon: "📝", count: 0, color: "butter" },
+    { id: "storybooks", title: "Storybooks", description: "Compiled family books", icon: "📚", count: 0, color: "sage" },
   ]);
 
   useEffect(() => {
-    // Simulate loading - in future, fetch actual asset counts
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
 
   if (loading) {
     return (
       <MobileLayout className="flex items-center justify-center">
-        <YarnDecoration variant="ball" color="rose" className="w-12 h-12 animate-pulse-soft" />
+        <div className="w-12 h-12 rounded-full bg-primary/20 animate-pulse" />
       </MobileLayout>
     );
   }
 
-  return (
-    <MobileLayout>
-      <Header title="Family Gems" />
+  const totalItems = categories.reduce((sum, cat) => sum + cat.count, 0);
 
-      <div className="flex-1 px-6 py-4 overflow-y-auto pb-24 space-y-6">
-        {/* Hero Section */}
+  return (
+    <MobileLayout className="pb-20">
+      {/* Header */}
+      <div className="px-6 pt-6 pb-4">
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-6"
         >
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-200 to-rose-200 flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-10 h-10 text-amber-600" />
-          </div>
-          <h2 className="text-xl font-display font-semibold text-foreground mb-2">
-            Your Family Treasures
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Precious memories and stories collected over time
+          <h1 className="font-display text-2xl font-bold text-foreground">
+            Family Gems
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Your precious memories and stories
           </p>
         </motion.div>
+      </div>
 
-        {/* Asset Categories */}
-        <div className="space-y-3">
-          {categories.map((category, index) => {
-            const Icon = category.icon;
-            return (
-              <motion.div
-                key={category.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
+      {/* Overview Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="px-6 mb-6"
+      >
+        <CozyCard>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-yarn-butter/30 flex items-center justify-center text-2xl">
+              💎
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">Total Treasures</p>
+              <p className="font-display text-xl font-bold text-foreground">
+                {totalItems} Items
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Across {categories.length} collections
+              </p>
+            </div>
+          </div>
+        </CozyCard>
+      </motion.div>
+
+      {/* Categories */}
+      <div className="px-6">
+        <h2 className="font-display text-lg font-semibold text-foreground mb-3">
+          Collections
+        </h2>
+        <div className="space-y-3 pb-6">
+          {categories.map((category, index) => (
+            <motion.div
+              key={category.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1 + 0.2 }}
+            >
+              <CozyCard
+                className="cursor-pointer hover:shadow-cozy transition-all group"
               >
-                <CozyCard className="flex items-center gap-4 cursor-pointer hover:bg-muted/50 transition-colors">
-                  <div className={`p-3 rounded-xl ${category.color}`}>
-                    <Icon className="w-6 h-6" />
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                      category.color === "rose"
+                        ? "bg-yarn-rose/20"
+                        : category.color === "butter"
+                        ? "bg-yarn-butter/20"
+                        : "bg-yarn-sage/20"
+                    }`}
+                  >
+                    {category.icon}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-medium text-foreground">{category.title}</h3>
+                    <h3 className="font-semibold text-foreground">
+                      {category.title}
+                    </h3>
                     <p className="text-sm text-muted-foreground">
+                      {category.description}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
                       {category.count} items
                     </p>
                   </div>
-                  <div className="text-muted-foreground">→</div>
-                </CozyCard>
-              </motion.div>
-            );
-          })}
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+              </CozyCard>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Empty State Message */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-center py-8"
-        >
-          <p className="text-sm text-muted-foreground">
-            Start capturing moments and stories to fill your treasure chest!
-          </p>
-        </motion.div>
-
-        {/* Decorative Element */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="flex justify-center pt-4"
-        >
-          <YarnDecoration variant="wave" color="butter" className="w-32" />
-        </motion.div>
+        {/* Empty state hint */}
+        {totalItems === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <CozyCard className="text-center py-8">
+              <div className="text-4xl mb-3">✨</div>
+              <h3 className="font-display text-lg font-semibold text-foreground mb-2">
+                Start Your Collection
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Capture moments and stories to fill your treasure chest
+              </p>
+            </CozyCard>
+          </motion.div>
+        )}
       </div>
 
       <BottomNav />
