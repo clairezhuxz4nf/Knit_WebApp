@@ -26,7 +26,7 @@ const navItems: NavItem[] = [{
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  return <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border/50 pb-safe">
+  return <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 w-full max-w-md bg-card/95 backdrop-blur-md border-t border-border/50 pb-safe">
       <div className="flex items-center justify-around px-2 py-2">
         {navItems.map(item => {
         const isActive = location.pathname === item.path;
