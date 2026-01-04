@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight, Users, Clock } from "lucide-react";
+import { ChevronRight, Clock, Check, X, Mail } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
@@ -10,6 +10,7 @@ import CozyButton from "@/components/ui/CozyButton";
 import YarnDecoration from "@/components/ui/YarnDecoration";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const projectTypes = {
   "culture-story": { label: "Culture Story", icon: "🌍", color: "sage" },
@@ -36,20 +37,45 @@ interface Project {
   } | null;
 }
 
+interface PendingInvitation {
+  id: string;
+  project_id: string;
+  invited_at: string;
+  project: {
+    id: string;
+    title: string;
+    description: string | null;
+  };
+  inviter_person?: {
+    first_name: string;
+    last_name: string | null;
+  } | null;
+}
+
 const WorkingProjects = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [filter, setFilter] = useState<"all" | "mine" | "invited">("all");
   const [projects, setProjects] = useState<Project[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      if (!user) return;
-      
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Get user's person record to find their invitations
+      const { data: personData } = await supabase
+        .from("people")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      // Fetch projects and pending invitations in parallel
+      const [projectsResult, invitationsResult] = await Promise.all([
+        supabase
           .from("projects")
           .select(`
             id,
@@ -62,19 +88,59 @@ const WorkingProjects = () => {
             event_id,
             event:events(id, title)
           `)
-          .order("updated_at", { ascending: false });
+          .order("updated_at", { ascending: false }),
+        personData ? supabase
+          .from("project_contributors")
+          .select(`
+            id,
+            project_id,
+            invited_at,
+            project:projects(id, title, description)
+          `)
+          .eq("person_id", personData.id)
+          .eq("status", "pending") : Promise.resolve({ data: [], error: null })
+      ]);
 
-        if (error) throw error;
-        setProjects(data || []);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-      } finally {
-        setLoading(false);
+      if (projectsResult.error) throw projectsResult.error;
+      setProjects(projectsResult.data || []);
+
+      if (!invitationsResult.error && invitationsResult.data) {
+        setPendingInvitations(invitationsResult.data as unknown as PendingInvitation[]);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchProjects();
+  useEffect(() => {
+    fetchData();
   }, [user]);
+
+  const handleRespondToInvitation = async (invitationId: string, accept: boolean) => {
+    setRespondingTo(invitationId);
+    try {
+      const { error } = await supabase
+        .from("project_contributors")
+        .update({
+          status: accept ? "accepted" : "declined",
+          responded_at: new Date().toISOString(),
+          user_id: accept ? user?.id : null,
+        })
+        .eq("id", invitationId);
+
+      if (error) throw error;
+
+      toast.success(accept ? "Invitation accepted! You can now contribute to this project." : "Invitation declined.");
+      fetchData(); // Refresh data
+    } catch (error: any) {
+      console.error("Error responding to invitation:", error);
+      toast.error(error.message || "Failed to respond to invitation");
+    } finally {
+      setRespondingTo(null);
+    }
+  };
 
   const filteredProjects = projects.filter((p) => {
     if (filter === "all") return true;
@@ -130,6 +196,54 @@ const WorkingProjects = () => {
           ))}
         </div>
       </div>
+
+      {/* Pending Invitations */}
+      {pendingInvitations.length > 0 && (
+        <div className="px-6 pb-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Mail className="w-4 h-4 text-primary" />
+            Pending Invitations ({pendingInvitations.length})
+          </h3>
+          <div className="space-y-2">
+            {pendingInvitations.map((invitation) => (
+              <motion.div
+                key={invitation.id}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <CozyCard variant="elevated" className="border-2 border-primary/20">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-foreground truncate">
+                        {invitation.project?.title || "Unknown Project"}
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        You've been invited to collaborate
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => handleRespondToInvitation(invitation.id, false)}
+                        disabled={respondingTo === invitation.id}
+                        className="w-8 h-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+                      >
+                        <X className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                      <button
+                        onClick={() => handleRespondToInvitation(invitation.id, true)}
+                        disabled={respondingTo === invitation.id}
+                        className="w-8 h-8 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center transition-colors"
+                      >
+                        <Check className="w-4 h-4 text-primary-foreground" />
+                      </button>
+                    </div>
+                  </div>
+                </CozyCard>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Projects List */}
       <div className="flex-1 px-6 pb-24 overflow-y-auto">

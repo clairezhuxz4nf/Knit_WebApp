@@ -27,10 +27,13 @@ const outputTypes = [
   { id: "album", label: "Photo Album (Coming Soon)", icon: "📷", description: "A curated photo collection", disabled: true },
 ];
 
-interface FamilyMember {
+interface FamilyPerson {
   id: string;
-  name: string;
-  birthday: string;
+  first_name: string;
+  last_name: string | null;
+  avatar_url: string | null;
+  user_id: string | null;
+  status: string;
 }
 
 const CreateProject = () => {
@@ -42,21 +45,15 @@ const CreateProject = () => {
   const [eventName, setEventName] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [projectType, setProjectType] = useState("");
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
   const [outputType, setOutputType] = useState("storybook");
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [familyPeople, setFamilyPeople] = useState<FamilyPerson[]>([]);
   const [eventId, setEventId] = useState<string | null>(null);
   const [familySpaceId, setFamilySpaceId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingPeople, setLoadingPeople] = useState(false);
 
   useEffect(() => {
-    // Load family members from storage
-    const saved = localStorage.getItem("familySpace");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setFamilyMembers(parsed.members || []);
-    }
-
     // Pre-fill from navigation state (when coming from an event)
     if (location.state) {
       const { event, date, eventId: passedEventId, familySpaceId: passedFamilySpaceId } = location.state as { 
@@ -73,28 +70,57 @@ const CreateProject = () => {
       if (passedEventId) setEventId(passedEventId);
       if (passedFamilySpaceId) setFamilySpaceId(passedFamilySpaceId);
     }
+  }, [location.state]);
 
-    // Fetch user's family space if not passed
-    const fetchFamilySpace = async () => {
-      if (!user || familySpaceId) return;
-      const { data } = await supabase
-        .from("family_members")
-        .select("family_space_id")
-        .eq("user_id", user.id)
-        .limit(1)
-        .maybeSingle();
-      if (data) {
-        setFamilySpaceId(data.family_space_id);
+  // Fetch family space and people
+  useEffect(() => {
+    const fetchFamilyData = async () => {
+      if (!user) return;
+      
+      setLoadingPeople(true);
+      try {
+        // Get user's family space
+        let spaceId = familySpaceId;
+        if (!spaceId) {
+          const { data: memberData } = await supabase
+            .from("family_members")
+            .select("family_space_id")
+            .eq("user_id", user.id)
+            .limit(1)
+            .maybeSingle();
+          
+          if (memberData) {
+            spaceId = memberData.family_space_id;
+            setFamilySpaceId(spaceId);
+          }
+        }
+
+        if (spaceId) {
+          // Fetch all people in the family space (excluding current user's person record)
+          const { data: peopleData, error } = await supabase
+            .from("people")
+            .select("id, first_name, last_name, avatar_url, user_id, status")
+            .eq("family_space_id", spaceId)
+            .neq("user_id", user.id);
+
+          if (error) throw error;
+          setFamilyPeople(peopleData || []);
+        }
+      } catch (error) {
+        console.error("Error fetching family data:", error);
+      } finally {
+        setLoadingPeople(false);
       }
     };
-    fetchFamilySpace();
-  }, [location.state, user, familySpaceId]);
 
-  const toggleMember = (memberId: string) => {
-    setSelectedMembers((prev) =>
-      prev.includes(memberId)
-        ? prev.filter((id) => id !== memberId)
-        : [...prev, memberId]
+    fetchFamilyData();
+  }, [user, familySpaceId]);
+
+  const togglePerson = (personId: string) => {
+    setSelectedPeople((prev) =>
+      prev.includes(personId)
+        ? prev.filter((id) => id !== personId)
+        : [...prev, personId]
     );
   };
 
@@ -109,7 +135,8 @@ const CreateProject = () => {
 
       setIsSubmitting(true);
       try {
-        const { data, error } = await supabase
+        // Create the project
+        const { data: projectData, error: projectError } = await supabase
           .from("projects")
           .insert({
             title: projectName,
@@ -123,10 +150,32 @@ const CreateProject = () => {
           .select()
           .single();
 
-        if (error) throw error;
+        if (projectError) throw projectError;
 
-        toast.success("Project created successfully!");
-        navigate(`/project/${data.id}`);
+        // Send invitations to selected people
+        if (selectedPeople.length > 0) {
+          const invitations = selectedPeople.map((personId) => ({
+            project_id: projectData.id,
+            person_id: personId,
+            invited_by: user.id,
+            status: "pending",
+          }));
+
+          const { error: inviteError } = await supabase
+            .from("project_contributors")
+            .insert(invitations);
+
+          if (inviteError) {
+            console.error("Error sending invitations:", inviteError);
+            toast.error("Project created but some invitations failed");
+          } else {
+            toast.success(`Project created! ${selectedPeople.length} invitation(s) sent.`);
+          }
+        } else {
+          toast.success("Project created successfully!");
+        }
+
+        navigate(`/project/${projectData.id}`);
       } catch (error: any) {
         console.error("Error creating project:", error);
         toast.error(error.message || "Failed to create project");
@@ -269,41 +318,59 @@ const CreateProject = () => {
             </div>
 
             <div className="space-y-3">
-              {familyMembers.length > 0 ? (
-                familyMembers.map((member) => (
-                  <button
-                    key={member.id}
-                    onClick={() => toggleMember(member.id)}
-                    className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                      selectedMembers.includes(member.id)
-                        ? "border-secondary bg-secondary/10"
-                        : "border-border bg-card hover:border-secondary/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg">
-                        {member.name.charAt(0).toUpperCase()}
+              {loadingPeople ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : familyPeople.length > 0 ? (
+                familyPeople.map((person) => {
+                  const displayName = person.last_name 
+                    ? `${person.first_name} ${person.last_name}`
+                    : person.first_name;
+                  const isActive = person.status === "active";
+                  
+                  return (
+                    <button
+                      key={person.id}
+                      onClick={() => togglePerson(person.id)}
+                      className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                        selectedPeople.includes(person.id)
+                          ? "border-secondary bg-secondary/10"
+                          : "border-border bg-card hover:border-secondary/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg overflow-hidden">
+                          {person.avatar_url ? (
+                            <img src={person.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+                          ) : (
+                            person.first_name.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground">{displayName}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {isActive ? "Active member" : person.status === "invited" ? "Pending invite" : "Placeholder"}
+                          </p>
+                        </div>
+                        {selectedPeople.includes(person.id) && (
+                          <Check className="w-5 h-5 text-secondary" />
+                        )}
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground">{member.name}</h3>
-                      </div>
-                      {selectedMembers.includes(member.id) && (
-                        <Check className="w-5 h-5 text-secondary" />
-                      )}
-                    </div>
-                  </button>
-                ))
+                    </button>
+                  );
+                })
               ) : (
                 <CozyCard className="text-center py-8">
                   <p className="text-muted-foreground">
-                    No family members added yet. You can invite them later.
+                    No family members added yet. You can invite them later from the project page.
                   </p>
                 </CozyCard>
               )}
             </div>
 
             <p className="text-sm text-muted-foreground text-center">
-              Selected contributors can add their stories and photos
+              Selected contributors will receive an invitation to collaborate
             </p>
           </motion.div>
         );
