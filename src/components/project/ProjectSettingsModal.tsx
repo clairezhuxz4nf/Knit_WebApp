@@ -223,28 +223,44 @@ const ProjectSettingsModal = ({
   };
 
   const handleSaveProject = async () => {
-    if (!project) return;
+    if (!project) {
+      toast.error("No project to update");
+      return;
+    }
+    
+    if (!editTitle.trim()) {
+      toast.error("Project name is required");
+      return;
+    }
+    
     setSaving(true);
 
     try {
+      console.log("Updating project:", projectId, { title: editTitle, description: editDescription });
+      
       const { data, error } = await supabase
         .from("projects")
         .update({
-          title: editTitle,
-          description: editDescription,
+          title: editTitle.trim(),
+          description: editDescription.trim() || null,
         })
         .eq("id", projectId)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+      
+      console.log("Update successful:", data);
       setProject(data);
       onProjectUpdated(data);
       setIsEditing(false);
       toast.success("Project updated!");
     } catch (error: any) {
       console.error("Error updating project:", error);
-      toast.error("Failed to update project");
+      toast.error(error.message || "Failed to update project");
     } finally {
       setSaving(false);
     }
