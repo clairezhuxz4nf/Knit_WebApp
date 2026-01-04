@@ -6,16 +6,16 @@ import {
   Mic,
   MicOff,
   Image as ImageIcon,
-  Settings,
-  X,
   Book,
-  Check,
 } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import CozyButton from "@/components/ui/CozyButton";
 import CozyCard from "@/components/ui/CozyCard";
 import YarnDecoration from "@/components/ui/YarnDecoration";
+import ProjectSettingsModal from "@/components/project/ProjectSettingsModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
   id: string;
@@ -25,9 +25,21 @@ interface Message {
   media?: { type: "image" | "video"; url: string }[];
 }
 
-const Project = () => {
+interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  created_by: string;
+  family_space_id: string;
+  status: string;
+  progress: number;
+}
+
+const ProjectPage = () => {
   const navigate = useNavigate();
   const { projectId } = useParams();
+  const { user } = useAuth();
+  const [project, setProject] = useState<Project | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -40,10 +52,28 @@ const Project = () => {
   const [inputText, setInputText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(true);
   const [isCompiled, setIsCompiled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (projectId) {
+      fetchProject();
+    }
+  }, [projectId]);
+
+  const fetchProject = async () => {
+    const { data } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("id", projectId)
+      .maybeSingle();
+    
+    if (data) {
+      setProject(data);
+      setIsCompiled(data.status === "completed");
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -144,19 +174,6 @@ const Project = () => {
     }
   };
 
-  const handleCompile = () => {
-    setIsCompiled(true);
-    setShowSettings(false);
-
-    const botMessage: Message = {
-      id: Date.now().toString(),
-      type: "bot",
-      content:
-        "🎉 Your storybook has been compiled! It's now ready to be viewed and shared with your family. The stories you've collected will be treasured for generations to come.",
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, botMessage]);
-  };
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("en-US", {
@@ -169,7 +186,7 @@ const Project = () => {
   return (
     <MobileLayout className="flex flex-col">
       <Header
-        title="Story Collection"
+        title={project?.title || "Story Collection"}
         showBack
         showSettings
         onSettingsClick={() => setShowSettings(true)}
@@ -322,90 +339,17 @@ const Project = () => {
       </div>
 
       {/* Settings Modal */}
-      <AnimatePresence>
-        {showSettings && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-foreground/50 z-50 flex items-end"
-            onClick={() => setShowSettings(false)}
-          >
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              className="w-full bg-background rounded-t-3xl p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-display text-xl font-semibold">
-                  Project Settings
-                </h2>
-                <button
-                  onClick={() => setShowSettings(false)}
-                  className="p-2 rounded-full hover:bg-muted"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <CozyCard>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-foreground">Admin Status</p>
-                      <p className="text-sm text-muted-foreground">
-                        {isAdmin ? "You are the admin" : "You are a contributor"}
-                      </p>
-                    </div>
-                    {isAdmin && <Check className="w-5 h-5 text-secondary" />}
-                  </div>
-                </CozyCard>
-
-                <CozyCard>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-foreground">Contributors</p>
-                      <p className="text-sm text-muted-foreground">
-                        3 family members
-                      </p>
-                    </div>
-                    <CozyButton variant="ghost" size="sm">
-                      Manage
-                    </CozyButton>
-                  </div>
-                </CozyCard>
-
-                {isAdmin && !isCompiled && (
-                  <CozyButton
-                    variant="primary"
-                    fullWidth
-                    size="lg"
-                    onClick={handleCompile}
-                  >
-                    <Book className="w-5 h-5 mr-2" />
-                    Compile Storybook
-                  </CozyButton>
-                )}
-
-                {isCompiled && (
-                  <CozyCard className="bg-secondary/10 border-secondary">
-                    <div className="flex items-center gap-3">
-                      <Check className="w-6 h-6 text-secondary" />
-                      <p className="text-foreground">
-                        This project has been compiled into a storybook
-                      </p>
-                    </div>
-                  </CozyCard>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {projectId && (
+        <ProjectSettingsModal
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          projectId={projectId}
+          onProjectDeleted={() => navigate("/working-projects")}
+          onProjectUpdated={(updated) => setProject(updated)}
+        />
+      )}
     </MobileLayout>
   );
 };
 
-export default Project;
+export default ProjectPage;

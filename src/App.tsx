@@ -16,7 +16,7 @@ import Gems from "./pages/Gems";
 import EventChronicle from "./pages/EventChronicle";
 import WorkingProjects from "./pages/WorkingProjects";
 import CreateProject from "./pages/CreateProject";
-import Project from "./pages/Project";
+import ProjectPage from "./pages/Project";
 import Family from "./pages/Family";
 import Quests from "./pages/Quests";
 import NotFound from "./pages/NotFound";
@@ -46,7 +46,7 @@ const App = () => (
             <Route path="/working-projects" element={<WorkingProjects />} />
             <Route path="/quests" element={<Quests />} />
             <Route path="/create-project" element={<CreateProject />} />
-            <Route path="/project/:projectId" element={<Project />} />
+            <Route path="/project/:projectId" element={<ProjectPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
