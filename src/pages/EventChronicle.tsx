@@ -98,6 +98,7 @@ const EventChronicle = () => {
   } = useAuth();
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [dbEvents, setDbEvents] = useState<DbEvent[]>([]);
+  const [eventProjects, setEventProjects] = useState<Record<string, boolean>>({});
   const [familySpaceId, setFamilySpaceId] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
@@ -136,10 +137,11 @@ const EventChronicle = () => {
     }
     setFamilySpaceId(memberData.family_space_id);
     
-    // Fetch members and database events for this family space
-    const [membersResult, eventsResult] = await Promise.all([
+    // Fetch members, database events, and projects for this family space
+    const [membersResult, eventsResult, projectsResult] = await Promise.all([
       supabase.from("family_members").select("id, display_name, birthday").eq("family_space_id", memberData.family_space_id),
-      supabase.from("events").select("id, title, event_date, event_type, family_space_id").eq("family_space_id", memberData.family_space_id)
+      supabase.from("events").select("id, title, event_date, event_type, family_space_id").eq("family_space_id", memberData.family_space_id),
+      supabase.from("projects").select("event_id").eq("family_space_id", memberData.family_space_id).not("event_id", "is", null)
     ]);
     
     if (membersResult.error) throw membersResult.error;
@@ -147,6 +149,15 @@ const EventChronicle = () => {
     
     setMembers(membersResult.data || []);
     setDbEvents(eventsResult.data || []);
+    
+    // Build a map of event IDs that have associated projects
+    const projectEventMap: Record<string, boolean> = {};
+    (projectsResult.data || []).forEach((p: { event_id: string | null }) => {
+      if (p.event_id) {
+        projectEventMap[p.event_id] = true;
+      }
+    });
+    setEventProjects(projectEventMap);
   };
   const fetchEventSettings = async () => {
     if (!user) return;
@@ -421,9 +432,15 @@ const EventChronicle = () => {
                     </div>
 
                     <div className="mt-3 pt-2 border-t border-border/50">
-                      <p className="text-xs text-muted-foreground">
-                        Start preparing for this event
-                      </p>
+                      {event.dbEventId && eventProjects[event.dbEventId] ? (
+                        <p className="text-xs font-medium" style={{ color: "#94B097" }}>
+                          Start working on this event
+                        </p>
+                      ) : (
+                        <p className="text-xs font-medium" style={{ color: "#C08686" }}>
+                          Start preparing for this event
+                        </p>
+                      )}
                     </div>
                   </CozyCard>
                 </motion.div>;
