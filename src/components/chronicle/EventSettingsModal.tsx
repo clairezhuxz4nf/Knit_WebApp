@@ -139,16 +139,21 @@ const EventSettingsModal = ({ isOpen, onClose, settings, onSave }: EventSettings
             className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto bg-background rounded-t-3xl shadow-2xl"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-4 flex items-center justify-between">
-              <h2 className="font-display text-xl font-semibold text-foreground">
-                Event Settings
-              </h2>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-4 flex items-center justify-between z-10">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-full hover:bg-muted transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <h2 className="font-display text-xl font-semibold text-foreground">
+                  Event Settings
+                </h2>
+              </div>
+              <CozyButton variant="primary" size="sm" onClick={handleSave}>
+                Save
+              </CozyButton>
             </div>
 
             <div className="p-6 space-y-6">
@@ -421,12 +426,6 @@ const EventSettingsModal = ({ isOpen, onClose, settings, onSave }: EventSettings
                 )}
               </CozyCard>
 
-              {/* Save Button */}
-              <div className="pt-4 pb-24">
-                <CozyButton variant="primary" fullWidth onClick={handleSave}>
-                  Save Settings
-                </CozyButton>
-              </div>
             </div>
           </motion.div>
         </>
