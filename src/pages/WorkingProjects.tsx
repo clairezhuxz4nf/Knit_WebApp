@@ -34,6 +34,7 @@ interface Project {
   event?: {
     id: string;
     title: string;
+    event_date: string;
   } | null;
 }
 
@@ -86,7 +87,7 @@ const WorkingProjects = () => {
             created_by,
             updated_at,
             event_id,
-            event:events(id, title)
+            event:events(id, title, event_date)
           `)
           .order("updated_at", { ascending: false }),
         personData ? supabase
@@ -291,7 +292,9 @@ const WorkingProjects = () => {
                               {project.title}
                             </h3>
                             <p className="text-xs text-muted-foreground">
-                              {project.event ? project.event.title : typeInfo.label}
+                              {project.event 
+                                ? `${project.event.title} · Due ${new Date(project.event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                                : typeInfo.label}
                             </p>
                           </div>
                           {isAdmin && (
