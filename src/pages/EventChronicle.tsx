@@ -80,6 +80,14 @@ const EventChronicle = () => {
 
       setFamilySpaceId(memberData.family_space_id);
 
+      // Seed default festivals if needed (fire and forget)
+      supabase.rpc("seed_default_festivals", {
+        _family_space_id: memberData.family_space_id,
+        _created_by: user.id,
+      }).then(() => {
+        // Refetch events after seeding
+      });
+
       // Fetch events, projects, and user settings in parallel
       const [eventsResult, projectsResult, settingsResult] = await Promise.all([
         supabase
