@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import CozyButton from "@/components/ui/CozyButton";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyInput from "@/components/ui/CozyInput";
+import EmojiPicker from "@/components/ui/EmojiPicker";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -60,6 +61,7 @@ interface Project {
   id: string;
   title: string;
   description: string | null;
+  emoji: string | null;
   created_by: string;
   family_space_id: string;
   status: string;
@@ -92,6 +94,7 @@ const ProjectSettingsModal = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editEmoji, setEditEmoji] = useState("📁");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -121,6 +124,7 @@ const ProjectSettingsModal = ({
       setProject(projectData);
       setEditTitle(projectData.title);
       setEditDescription(projectData.description || "");
+      setEditEmoji(projectData.emoji || "📁");
 
       // Check if user is admin (project creator or family admin)
       const isCreator = projectData.created_by === user?.id;
@@ -236,13 +240,14 @@ const ProjectSettingsModal = ({
     setSaving(true);
 
     try {
-      console.log("Updating project:", projectId, { title: editTitle, description: editDescription });
+      console.log("Updating project:", projectId, { title: editTitle, description: editDescription, emoji: editEmoji });
       
       const { data, error } = await supabase
         .from("projects")
         .update({
           title: editTitle.trim(),
           description: editDescription.trim() || null,
+          emoji: editEmoji,
         })
         .eq("id", projectId)
         .select()
@@ -464,6 +469,11 @@ const ProjectSettingsModal = ({
               <TabsContent value="settings" className="space-y-4">
                 {isEditing ? (
                   <div className="space-y-4">
+                    <EmojiPicker
+                      label="Project Icon"
+                      value={editEmoji}
+                      onChange={setEditEmoji}
+                    />
                     <CozyInput
                       label="Project Name"
                       value={editTitle}
@@ -481,6 +491,7 @@ const ProjectSettingsModal = ({
                           setIsEditing(false);
                           setEditTitle(project?.title || "");
                           setEditDescription(project?.description || "");
+                          setEditEmoji(project?.emoji || "📁");
                         }}
                       >
                         Cancel

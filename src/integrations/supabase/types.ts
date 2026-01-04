@@ -352,6 +352,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          emoji: string | null
           event_id: string | null
           family_space_id: string
           id: string
@@ -365,6 +366,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          emoji?: string | null
           event_id?: string | null
           family_space_id: string
           id?: string
@@ -378,6 +380,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          emoji?: string | null
           event_id?: string | null
           family_space_id?: string
           id?: string

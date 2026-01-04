@@ -8,6 +8,7 @@ import CozyButton from "@/components/ui/CozyButton";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyInput from "@/components/ui/CozyInput";
 import YarnDecoration from "@/components/ui/YarnDecoration";
+import EmojiPicker from "@/components/ui/EmojiPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -42,6 +43,7 @@ const CreateProject = () => {
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [projectName, setProjectName] = useState("");
+  const [projectEmoji, setProjectEmoji] = useState("📁");
   const [eventName, setEventName] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [projectType, setProjectType] = useState("");
@@ -141,6 +143,7 @@ const CreateProject = () => {
           .insert({
             title: projectName,
             description: eventName,
+            emoji: projectEmoji,
             family_space_id: familySpaceId,
             created_by: user.id,
             event_id: eventId,
@@ -226,6 +229,12 @@ const CreateProject = () => {
               placeholder="e.g., Family CNY Memories 2026"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
+            />
+
+            <EmojiPicker
+              label="Project Icon"
+              value={projectEmoji}
+              onChange={setProjectEmoji}
             />
 
             <CozyInput
