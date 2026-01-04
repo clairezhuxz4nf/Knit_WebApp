@@ -254,6 +254,54 @@ export type Database = {
         }
         Relationships: []
       }
+      project_contributors: {
+        Row: {
+          id: string
+          invited_at: string
+          invited_by: string
+          person_id: string
+          project_id: string
+          responded_at: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          invited_at?: string
+          invited_by: string
+          person_id: string
+          project_id: string
+          responded_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          invited_at?: string
+          invited_by?: string
+          person_id?: string
+          project_id?: string
+          responded_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_contributors_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_contributors_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           cover_image_url: string | null
