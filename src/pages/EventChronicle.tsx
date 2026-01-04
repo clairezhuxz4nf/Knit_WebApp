@@ -379,7 +379,7 @@ const EventChronicle = () => {
 
                     <div className="mt-3 pt-2 border-t border-border/50">
                       <p className="text-xs text-muted-foreground">
-                        Tap to create a project for this event
+                        Start preparing for this event
                       </p>
                     </div>
                   </CozyCard>
