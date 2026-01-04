@@ -502,6 +502,10 @@ export type Database = {
         Args: { _person_id: string; _user_id: string }
         Returns: boolean
       }
+      seed_default_festivals: {
+        Args: { _created_by: string; _family_space_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       person_status: "active" | "invited" | "placeholder" | "deceased"
