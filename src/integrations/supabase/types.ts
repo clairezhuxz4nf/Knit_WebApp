@@ -150,6 +150,47 @@ export type Database = {
           },
         ]
       }
+      family_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          family_space_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          uploaded_by: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          family_space_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          uploaded_by: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          family_space_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_photos_family_space_id_fkey"
+            columns: ["family_space_id"]
+            isOneToOne: false
+            referencedRelation: "family_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_spaces: {
         Row: {
           created_at: string
