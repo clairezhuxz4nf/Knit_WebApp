@@ -30,6 +30,7 @@ const Profile = () => {
     birthday: "",
     avatar_url: "",
   });
+  const [personId, setPersonId] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
 
   useEffect(() => {
@@ -42,20 +43,40 @@ const Profile = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
+      // First, try to get the user's person record (source of truth for family tree)
+      const { data: personData } = await supabase
+        .from("people")
+        .select("id, first_name, last_name, birth_date")
+        .eq("user_id", user.id)
         .maybeSingle();
 
-      if (error) throw error;
-
-      if (data) {
+      if (personData) {
+        setPersonId(personData.id);
+        const fullName = personData.last_name 
+          ? `${personData.first_name} ${personData.last_name}`
+          : personData.first_name;
         setProfile({
-          display_name: data.display_name || "",
-          birthday: data.birthday || "",
-          avatar_url: data.avatar_url || "",
+          display_name: fullName,
+          birthday: personData.birth_date || "",
+          avatar_url: "",
         });
+      } else {
+        // Fall back to profiles table if no person record exists
+        const { data: profileData, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (profileData) {
+          setProfile({
+            display_name: profileData.display_name || "",
+            birthday: profileData.birthday || "",
+            avatar_url: profileData.avatar_url || "",
+          });
+        }
       }
 
       // Get phone from auth user metadata
@@ -72,7 +93,27 @@ const Profile = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      // Parse name into first and last
+      const nameParts = (profile.display_name || "").trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || null;
+
+      // Update person record if it exists (primary source of truth)
+      if (personId) {
+        const { error: personError } = await supabase
+          .from("people")
+          .update({
+            first_name: firstName,
+            last_name: lastName,
+            birth_date: profile.birthday || null,
+          })
+          .eq("id", personId);
+
+        if (personError) throw personError;
+      }
+
+      // Also update profiles table
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({
           display_name: profile.display_name || null,
@@ -80,7 +121,7 @@ const Profile = () => {
         })
         .eq("id", user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
 
       // Also update family_members display_name if they belong to a family
       const { data: memberData } = await supabase
