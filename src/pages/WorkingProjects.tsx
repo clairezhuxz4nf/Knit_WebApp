@@ -219,13 +219,13 @@ const WorkingProjects = () => {
       </div>
 
       {/* Floating Action Button */}
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ delay: 0.5, type: "spring" }}
-        className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md px-6 pointer-events-none"
-      >
-        <div className="flex justify-end pointer-events-auto">
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md pointer-events-none">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.5, type: "spring" }}
+          className="absolute right-6 bottom-0 pointer-events-auto"
+        >
           <CozyButton
             variant="primary"
             className="w-7 h-7 rounded-full shadow-lifted p-0"
@@ -233,8 +233,8 @@ const WorkingProjects = () => {
           >
             <span className="text-sm">+</span>
           </CozyButton>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       <BottomNav />
     </MobileLayout>
