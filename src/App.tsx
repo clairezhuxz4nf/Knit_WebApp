@@ -12,6 +12,7 @@ import JoinFamilySpace from "./pages/JoinFamilySpace";
 import FamilySpace from "./pages/FamilySpace";
 import FamilySettings from "./pages/FamilySettings";
 import Profile from "./pages/Profile";
+import Gems from "./pages/Gems";
 import EventChronicle from "./pages/EventChronicle";
 import WorkingProjects from "./pages/WorkingProjects";
 import CreateProject from "./pages/CreateProject";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/family" element={<Family />} />
             <Route path="/family-settings" element={<FamilySettings />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/gems" element={<Gems />} />
             <Route path="/event-chronicle" element={<EventChronicle />} />
             <Route path="/working-projects" element={<WorkingProjects />} />
             <Route path="/quests" element={<Quests />} />
