@@ -223,15 +223,17 @@ const WorkingProjects = () => {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.5, type: "spring" }}
-        className="fixed bottom-24 right-6"
+        className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md px-6 pointer-events-none"
       >
-        <CozyButton
-          variant="primary"
-          className="w-14 h-14 rounded-full shadow-lifted p-0"
-          onClick={() => navigate("/create-project")}
-        >
-          <span className="text-xl">+</span>
-        </CozyButton>
+        <div className="flex justify-end pointer-events-auto">
+          <CozyButton
+            variant="primary"
+            className="w-7 h-7 rounded-full shadow-lifted p-0"
+            onClick={() => navigate("/create-project")}
+          >
+            <span className="text-sm">+</span>
+          </CozyButton>
+        </div>
       </motion.div>
 
       <BottomNav />
