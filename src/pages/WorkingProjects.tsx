@@ -292,9 +292,7 @@ const WorkingProjects = () => {
                               {project.title}
                             </h3>
                             <p className="text-xs text-muted-foreground">
-                              {project.event 
-                                ? `${project.event.title} · Due ${new Date(project.event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                                : typeInfo.label}
+                              {project.event ? project.event.title : typeInfo.label}
                             </p>
                           </div>
                           {isAdmin && (
