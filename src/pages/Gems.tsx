@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Image, BookOpen, FileText, Sparkles } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
+import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
 import YarnDecoration from "@/components/ui/YarnDecoration";
 import { useAuth } from "@/contexts/AuthContext";
@@ -111,6 +112,8 @@ const Gems = () => {
           <YarnDecoration variant="wave" color="butter" className="w-32" />
         </motion.div>
       </div>
+
+      <BottomNav />
     </MobileLayout>
   );
 };

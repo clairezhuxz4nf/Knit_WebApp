@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { User, Calendar, Phone, LogOut, Save, Camera } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
+import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyButton from "@/components/ui/CozyButton";
 import CozyInput from "@/components/ui/CozyInput";
@@ -258,6 +259,8 @@ const Profile = () => {
           <YarnDecoration variant="wave" color="sage" className="w-32" />
         </motion.div>
       </div>
+
+      <BottomNav />
     </MobileLayout>
   );
 };
