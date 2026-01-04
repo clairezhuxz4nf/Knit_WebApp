@@ -260,6 +260,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          event_id: string | null
           family_space_id: string
           id: string
           progress: number
@@ -272,6 +273,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          event_id?: string | null
           family_space_id: string
           id?: string
           progress?: number
@@ -284,6 +286,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          event_id?: string | null
           family_space_id?: string
           id?: string
           progress?: number
@@ -292,6 +295,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_family_space_id_fkey"
             columns: ["family_space_id"]
