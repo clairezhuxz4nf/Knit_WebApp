@@ -187,13 +187,17 @@ const Family = () => {
               Family Members ({people.length})
             </h2>
             <div className="space-y-2">
-              {people.slice(0, 5).map((person, index) => {
+              {people.map((person, index) => {
             const fullName = person.last_name ? `${person.first_name} ${person.last_name}` : person.first_name;
             const isMe = person.user_id === user?.id;
             return <CozyCard key={person.id} className="py-3 cursor-pointer hover:shadow-cozy transition-all" onClick={() => handleEditPerson(person)}>
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-primary-foreground font-semibold ${person.status === 'active' ? index % 4 === 0 ? "bg-primary" : index % 4 === 1 ? "bg-secondary" : index % 4 === 2 ? "bg-accent text-accent-foreground" : "bg-teal text-teal-foreground" : "bg-muted text-muted-foreground"}`}>
-                        {person.first_name[0].toUpperCase()}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden text-primary-foreground font-semibold ${person.status === 'active' ? index % 4 === 0 ? "bg-primary" : index % 4 === 1 ? "bg-secondary" : index % 4 === 2 ? "bg-accent text-accent-foreground" : "bg-teal text-teal-foreground" : "bg-muted text-muted-foreground"}`}>
+                        {person.avatar_url ? (
+                          <img src={person.avatar_url} alt={fullName} className="w-full h-full object-cover" />
+                        ) : (
+                          person.first_name[0].toUpperCase()
+                        )}
                       </div>
                       <div className="flex-1">
                         <p className="font-medium text-foreground">
@@ -207,9 +211,6 @@ const Family = () => {
                     </div>
                   </CozyCard>;
           })}
-              {people.length > 5 && <p className="text-sm text-muted-foreground text-center">
-                  +{people.length - 5} more members
-                </p>}
             </div>
           </motion.div>}
       </div>
