@@ -200,19 +200,25 @@ const Profile = () => {
 
       if (profileError) throw profileError;
 
-      // Also update family_members display_name if they belong to a family
+      // Also update people table if they belong to a family (sync name)
       const { data: memberData } = await supabase
-        .from("family_members")
+        .from("people")
         .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (memberData) {
+        // Parse display_name into first_name and last_name
+        const nameParts = (profile.display_name || "").split(" ");
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || null;
+        
         await supabase
-          .from("family_members")
+          .from("people")
           .update({
-            display_name: profile.display_name || null,
-            birthday: profile.birthday || null,
+            first_name: firstName,
+            last_name: lastName,
+            birth_date: profile.birthday || null,
           })
           .eq("user_id", user.id);
       }

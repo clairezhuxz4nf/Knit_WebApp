@@ -12,6 +12,8 @@ export interface Person {
   avatar_url: string | null;
   birth_date: string | null;
   status: PersonStatus;
+  is_admin: boolean;
+  joined_at: string;
   created_by: string;
   created_at: string;
   updated_at: string;

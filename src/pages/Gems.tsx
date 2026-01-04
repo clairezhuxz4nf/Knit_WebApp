@@ -57,7 +57,7 @@ const Gems = () => {
 
       // Get user's family space with cover photo
       const { data: memberData } = await supabase
-        .from("family_members")
+        .from("people")
         .select("family_space_id")
         .eq("user_id", user.id)
         .maybeSingle();

@@ -61,20 +61,6 @@ Deno.serve(async (req) => {
             console.error('Error updating person:', updateError);
           }
 
-          // Add as family member if not exists
-          const { error: memberError } = await supabaseAdmin
-            .from('family_members')
-            .upsert({
-              family_space_id: '4e4990c6-92cd-4a0b-a653-544fd8c87524',
-              user_id: existingUser.id,
-              display_name: 'Will',
-              is_admin: false
-            }, { onConflict: 'family_space_id,user_id' });
-
-          if (memberError) {
-            console.error('Error adding family member:', memberError);
-          }
-
           return new Response(JSON.stringify({
             success: true,
             message: 'User already exists, linked to Will',
@@ -107,20 +93,6 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error('Error updating person:', updateError);
-    }
-
-    // Add Will as a family member
-    const { error: memberError } = await supabaseAdmin
-      .from('family_members')
-      .insert({
-        family_space_id: '4e4990c6-92cd-4a0b-a653-544fd8c87524',
-        user_id: userId,
-        display_name: 'Will',
-        is_admin: false
-      });
-
-    if (memberError) {
-      console.error('Error adding family member:', memberError);
     }
 
     return new Response(JSON.stringify({

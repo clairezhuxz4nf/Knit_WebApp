@@ -11,10 +11,11 @@ import YarnDecoration from "@/components/ui/YarnDecoration";
 import EventSettingsModal from "@/components/chronicle/EventSettingsModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-interface FamilyMember {
+interface FamilyPerson {
   id: string;
-  display_name: string | null;
-  birthday: string | null;
+  first_name: string;
+  last_name: string | null;
+  birth_date: string | null;
 }
 interface WesternFestival {
   id: string;
@@ -96,7 +97,7 @@ const EventChronicle = () => {
     user,
     loading
   } = useAuth();
-  const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [members, setMembers] = useState<FamilyPerson[]>([]);
   const [dbEvents, setDbEvents] = useState<DbEvent[]>([]);
   const [eventProjects, setEventProjects] = useState<Record<string, boolean>>({});
   const [familySpaceId, setFamilySpaceId] = useState<string | null>(null);
@@ -129,7 +130,7 @@ const EventChronicle = () => {
     const {
       data: memberData,
       error: memberError
-    } = await supabase.from("family_members").select("family_space_id").eq("user_id", user.id).maybeSingle();
+    } = await supabase.from("people").select("family_space_id").eq("user_id", user.id).maybeSingle();
     if (memberError) throw memberError;
     if (!memberData) {
       navigate("/welcome-page");
@@ -139,7 +140,7 @@ const EventChronicle = () => {
     
     // Fetch members, database events, and projects for this family space
     const [membersResult, eventsResult, projectsResult] = await Promise.all([
-      supabase.from("family_members").select("id, display_name, birthday").eq("family_space_id", memberData.family_space_id),
+      supabase.from("people").select("id, first_name, last_name, birth_date").eq("family_space_id", memberData.family_space_id),
       supabase.from("events").select("id, title, event_date, event_type, family_space_id").eq("family_space_id", memberData.family_space_id),
       supabase.from("projects").select("event_id").eq("family_space_id", memberData.family_space_id).not("event_id", "is", null)
     ]);
@@ -240,15 +241,18 @@ const EventChronicle = () => {
     // Add member birthdays from database
     if (eventSettings.showBirthdays) {
       members.forEach(member => {
-        if (member.birthday) {
-          const bday = new Date(member.birthday);
+        if (member.birth_date) {
+          const bday = new Date(member.birth_date);
           const thisYearBday = new Date(year, bday.getMonth(), bday.getDate());
           if (thisYearBday < today) {
             thisYearBday.setFullYear(year + 1);
           }
+          const displayName = member.last_name 
+            ? `${member.first_name} ${member.last_name}` 
+            : member.first_name;
           events.push({
             id: `bday-${member.id}`,
-            title: `${member.display_name || "Family Member"}'s Birthday`,
+            title: `${displayName || "Family Member"}'s Birthday`,
             date: thisYearBday,
             type: "birthday",
             icon: "🎂",

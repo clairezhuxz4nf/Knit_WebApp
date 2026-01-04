@@ -11,10 +11,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
 
-interface FamilyMember {
+interface FamilyPerson {
   id: string;
-  display_name: string | null;
-  birthday: string | null;
+  first_name: string;
+  last_name: string | null;
+  birth_date: string | null;
 }
 
 interface FamilySpaceData {
@@ -27,7 +28,7 @@ const FamilySpace = () => {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
   const [familySpace, setFamilySpace] = useState<FamilySpaceData | null>(null);
-  const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [members, setMembers] = useState<FamilyPerson[]>([]);
   const [activeTab, setActiveTab] = useState<"chronicle" | "projects">("chronicle");
   const [dataLoading, setDataLoading] = useState(true);
 
@@ -48,7 +49,7 @@ const FamilySpace = () => {
     try {
       // Get family space the user belongs to
       const { data: memberData, error: memberError } = await supabase
-        .from("family_members")
+        .from("people")
         .select("family_space_id")
         .eq("user_id", user.id)
         .maybeSingle();
@@ -73,8 +74,8 @@ const FamilySpace = () => {
 
       // Get all family members
       const { data: membersData, error: membersError } = await supabase
-        .from("family_members")
-        .select("id, display_name, birthday")
+        .from("people")
+        .select("id, first_name, last_name, birth_date")
         .eq("family_space_id", memberData.family_space_id);
 
       if (membersError) throw membersError;
@@ -93,15 +94,18 @@ const FamilySpace = () => {
 
     // Add member birthdays
     members.forEach((member) => {
-      if (member.birthday) {
-        const bday = new Date(member.birthday);
+      if (member.birth_date) {
+        const bday = new Date(member.birth_date);
         const thisYearBday = new Date(year, bday.getMonth(), bday.getDate());
         if (thisYearBday < today) {
           thisYearBday.setFullYear(year + 1);
         }
+        const displayName = member.last_name 
+          ? `${member.first_name} ${member.last_name}` 
+          : member.first_name;
         events.push({
           id: `bday-${member.id}`,
-          title: `${member.display_name || "Family Member"}'s Birthday`,
+          title: `${displayName || "Family Member"}'s Birthday`,
           date: thisYearBday,
           type: "birthday",
           icon: "🎂",

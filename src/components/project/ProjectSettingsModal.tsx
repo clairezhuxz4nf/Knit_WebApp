@@ -130,7 +130,7 @@ const ProjectSettingsModal = ({
       const isCreator = projectData.created_by === user?.id;
       
       const { data: adminCheck } = await supabase
-        .from("family_members")
+        .from("people")
         .select("is_admin")
         .eq("family_space_id", projectData.family_space_id)
         .eq("user_id", user?.id)

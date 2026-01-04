@@ -67,9 +67,9 @@ Deno.serve(async (req) => {
 
     // Create additional family member users
     const familyMembersData = [
-      { email: `mike_${Date.now()}@knit-family.test`, name: 'Mike Thompson', birthday: '1978-03-15' },
-      { email: `emma_${Date.now()}@knit-family.test`, name: 'Emma Thompson', birthday: '2005-07-22' },
-      { email: `grandma_${Date.now()}@knit-family.test`, name: 'Grandma Rose', birthday: '1952-12-01' }
+      { email: `mike_${Date.now()}@knit-family.test`, name: 'Mike Thompson', first_name: 'Mike', last_name: 'Thompson', birthday: '1978-03-15' },
+      { email: `emma_${Date.now()}@knit-family.test`, name: 'Emma Thompson', first_name: 'Emma', last_name: 'Thompson', birthday: '2005-07-22' },
+      { email: `grandma_${Date.now()}@knit-family.test`, name: 'Grandma Rose', first_name: 'Grandma', last_name: 'Rose', birthday: '1952-12-01' }
     ];
 
     const memberIds: string[] = [userId];
@@ -89,20 +89,56 @@ Deno.serve(async (req) => {
       memberIds.push(memberUser.user.id);
     }
 
-    // Add all family members to the family space
-    const familyMembersInsert = [
-      { family_space_id: familySpace.id, user_id: userId, display_name: 'Sarah Thompson', is_admin: true, birthday: '1980-05-10' },
-      { family_space_id: familySpace.id, user_id: memberIds[1] || userId, display_name: 'Mike Thompson', is_admin: false, birthday: '1978-03-15' },
-      { family_space_id: familySpace.id, user_id: memberIds[2] || userId, display_name: 'Emma Thompson', is_admin: false, birthday: '2005-07-22' },
-      { family_space_id: familySpace.id, user_id: memberIds[3] || userId, display_name: 'Grandma Rose', is_admin: false, birthday: '1952-12-01' }
+    // Add all family members to the people table (unified table)
+    const peopleInsert = [
+      { 
+        family_space_id: familySpace.id, 
+        user_id: userId, 
+        first_name: 'Sarah', 
+        last_name: 'Thompson', 
+        is_admin: true, 
+        birth_date: '1980-05-10',
+        status: 'active',
+        created_by: userId
+      },
+      { 
+        family_space_id: familySpace.id, 
+        user_id: memberIds[1] || userId, 
+        first_name: 'Mike', 
+        last_name: 'Thompson', 
+        is_admin: false, 
+        birth_date: '1978-03-15',
+        status: 'active',
+        created_by: userId
+      },
+      { 
+        family_space_id: familySpace.id, 
+        user_id: memberIds[2] || userId, 
+        first_name: 'Emma', 
+        last_name: 'Thompson', 
+        is_admin: false, 
+        birth_date: '2005-07-22',
+        status: 'active',
+        created_by: userId
+      },
+      { 
+        family_space_id: familySpace.id, 
+        user_id: memberIds[3] || userId, 
+        first_name: 'Grandma', 
+        last_name: 'Rose', 
+        is_admin: false, 
+        birth_date: '1952-12-01',
+        status: 'active',
+        created_by: userId
+      }
     ];
 
-    const { error: membersError } = await supabaseAdmin
-      .from('family_members')
-      .insert(familyMembersInsert);
+    const { error: peopleError } = await supabaseAdmin
+      .from('people')
+      .insert(peopleInsert);
 
-    if (membersError) {
-      console.error('Error inserting family members:', membersError);
+    if (peopleError) {
+      console.error('Error inserting people:', peopleError);
     }
 
     // Create projects

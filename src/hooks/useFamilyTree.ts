@@ -197,7 +197,7 @@ export function useFamilyTree(familySpaceId: string | null) {
       // Find the person to check if it's the current user
       const person = people.find(p => p.id === personId);
       
-      // If this is the current user's node, sync to profiles and family_members
+      // If this is the current user's node, sync to profiles
       if (person?.user_id && person.user_id === user?.id) {
         const fullName = updates.last_name 
           ? `${updates.first_name} ${updates.last_name}`
@@ -212,15 +212,6 @@ export function useFamilyTree(familySpaceId: string | null) {
             avatar_url: updates.avatar_url ?? undefined,
           })
           .eq('id', user.id);
-
-        // Sync to family_members table
-        await supabase
-          .from('family_members')
-          .update({
-            display_name: fullName || null,
-            birthday: updates.birth_date || null,
-          })
-          .eq('user_id', user.id);
       }
 
       setPeople(prev => prev.map(p => 
