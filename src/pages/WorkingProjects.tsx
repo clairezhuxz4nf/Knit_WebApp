@@ -228,10 +228,10 @@ const WorkingProjects = () => {
         >
           <CozyButton
             variant="primary"
-            className="w-7 h-7 rounded-full shadow-lifted p-0"
+            className="w-9 h-9 rounded-full shadow-lifted p-0"
             onClick={() => navigate("/create-project")}
           >
-            <span className="text-sm">+</span>
+            <span className="text-base">+</span>
           </CozyButton>
         </motion.div>
       </div>
