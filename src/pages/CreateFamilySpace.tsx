@@ -117,14 +117,22 @@ const CreateFamilySpace = () => {
         .eq("id", user.id)
         .maybeSingle();
 
+      // Parse display_name into first_name and last_name
+      const nameParts = (profileData?.display_name || "").split(" ");
+      const firstName = nameParts[0] || "New Member";
+      const lastName = nameParts.slice(1).join(" ") || null;
+
       // Add the creator as an admin member
       const { error: memberError } = await supabase
-        .from("family_members")
+        .from("people")
         .insert({
           family_space_id: spaceData.id,
           user_id: user.id,
-          display_name: profileData?.display_name || null,
+          first_name: firstName,
+          last_name: lastName,
           is_admin: true,
+          status: 'active',
+          created_by: user.id,
         });
 
       if (memberError) throw memberError;

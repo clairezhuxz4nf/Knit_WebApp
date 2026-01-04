@@ -12,11 +12,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface FamilyMember {
+interface FamilyPerson {
   id: string;
-  user_id: string;
-  display_name: string | null;
-  birthday: string | null;
+  user_id: string | null;
+  first_name: string;
+  last_name: string | null;
+  birth_date: string | null;
   is_admin: boolean;
 }
 
@@ -31,7 +32,7 @@ const FamilySettings = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [familySpace, setFamilySpace] = useState<FamilySpace | null>(null);
-  const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [members, setMembers] = useState<FamilyPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [editingMember, setEditingMember] = useState<string | null>(null);
@@ -50,7 +51,7 @@ const FamilySettings = () => {
     try {
       // Get family space the user belongs to
       const { data: memberData, error: memberError } = await supabase
-        .from("family_members")
+        .from("people")
         .select("family_space_id, is_admin")
         .eq("user_id", user.id)
         .maybeSingle();
@@ -76,8 +77,8 @@ const FamilySettings = () => {
 
       // Get all family members
       const { data: membersData, error: membersError } = await supabase
-        .from("family_members")
-        .select("*")
+        .from("people")
+        .select("id, user_id, first_name, last_name, birth_date, is_admin")
         .eq("family_space_id", memberData.family_space_id)
         .order("joined_at", { ascending: true });
 
@@ -110,14 +111,14 @@ const FamilySettings = () => {
   const updateMemberBirthday = async (memberId: string, birthday: string) => {
     try {
       const { error } = await supabase
-        .from("family_members")
-        .update({ birthday: birthday || null })
+        .from("people")
+        .update({ birth_date: birthday || null })
         .eq("id", memberId);
 
       if (error) throw error;
 
       setMembers((prev) =>
-        prev.map((m) => (m.id === memberId ? { ...m, birthday } : m))
+        prev.map((m) => (m.id === memberId ? { ...m, birth_date: birthday } : m))
       );
       setEditingMember(null);
       toast({
@@ -139,7 +140,7 @@ const FamilySettings = () => {
 
     try {
       const { error } = await supabase
-        .from("family_members")
+        .from("people")
         .delete()
         .eq("id", memberId);
 
@@ -244,7 +245,7 @@ const FamilySettings = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="font-semibold text-foreground truncate">
-                          {member.display_name || "Family Member"}
+                          {member.last_name ? `${member.first_name} ${member.last_name}` : member.first_name}
                         </h4>
                         {member.is_admin && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
@@ -274,14 +275,14 @@ const FamilySettings = () => {
                       ) : (
                         <button
                           onClick={() => {
-                            setEditingMember(member.id);
-                            setEditBirthday(member.birthday || "");
+                          setEditingMember(member.id);
+                            setEditBirthday(member.birth_date || "");
                           }}
                           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mt-1"
                         >
                           <Calendar className="w-3 h-3" />
-                          {member.birthday
-                            ? new Date(member.birthday).toLocaleDateString("en-US", {
+                          {member.birth_date
+                            ? new Date(member.birth_date).toLocaleDateString("en-US", {
                                 month: "short",
                                 day: "numeric",
                               })

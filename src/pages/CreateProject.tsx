@@ -85,7 +85,7 @@ const CreateProject = () => {
         let spaceId = familySpaceId;
         if (!spaceId) {
           const { data: memberData } = await supabase
-            .from("family_members")
+            .from("people")
             .select("family_space_id")
             .eq("user_id", user.id)
             .limit(1)

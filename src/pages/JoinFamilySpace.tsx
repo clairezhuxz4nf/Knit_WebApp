@@ -49,7 +49,7 @@ const JoinFamilySpace = () => {
 
       // Check if user is already a member
       const { data: existingMember } = await supabase
-        .from("family_members")
+        .from("people")
         .select("id")
         .eq("family_space_id", spaceData.id)
         .eq("user_id", user.id)
@@ -71,15 +71,23 @@ const JoinFamilySpace = () => {
         .eq("id", user.id)
         .maybeSingle();
 
+      // Parse display_name into first_name and last_name
+      const nameParts = (profileData?.display_name || "").split(" ");
+      const firstName = nameParts[0] || "New Member";
+      const lastName = nameParts.slice(1).join(" ") || null;
+
       // Join the family space
       const { error: joinError } = await supabase
-        .from("family_members")
+        .from("people")
         .insert({
           family_space_id: spaceData.id,
           user_id: user.id,
-          display_name: profileData?.display_name || null,
-          birthday: profileData?.birthday || null,
+          first_name: firstName,
+          last_name: lastName,
+          birth_date: profileData?.birthday || null,
           is_admin: false,
+          status: 'active',
+          created_by: user.id,
         });
 
       if (joinError) throw joinError;

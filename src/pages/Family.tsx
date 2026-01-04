@@ -63,7 +63,7 @@ const Family = () => {
       const {
         data: memberData,
         error: memberError
-      } = await supabase.from("family_members").select("family_space_id").eq("user_id", user.id).maybeSingle();
+      } = await supabase.from("people").select("family_space_id").eq("user_id", user.id).maybeSingle();
       if (memberError) throw memberError;
       if (!memberData) {
         navigate("/welcome-page");

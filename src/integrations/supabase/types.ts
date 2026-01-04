@@ -112,44 +112,6 @@ export type Database = {
           },
         ]
       }
-      family_members: {
-        Row: {
-          birthday: string | null
-          display_name: string | null
-          family_space_id: string
-          id: string
-          is_admin: boolean
-          joined_at: string
-          user_id: string
-        }
-        Insert: {
-          birthday?: string | null
-          display_name?: string | null
-          family_space_id: string
-          id?: string
-          is_admin?: boolean
-          joined_at?: string
-          user_id: string
-        }
-        Update: {
-          birthday?: string | null
-          display_name?: string | null
-          family_space_id?: string
-          id?: string
-          is_admin?: boolean
-          joined_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "family_members_family_space_id_fkey"
-            columns: ["family_space_id"]
-            isOneToOne: false
-            referencedRelation: "family_spaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       family_photos: {
         Row: {
           caption: string | null
@@ -230,6 +192,8 @@ export type Database = {
           family_space_id: string
           first_name: string
           id: string
+          is_admin: boolean
+          joined_at: string
           last_name: string | null
           status: Database["public"]["Enums"]["person_status"]
           updated_at: string
@@ -243,6 +207,8 @@ export type Database = {
           family_space_id: string
           first_name: string
           id?: string
+          is_admin?: boolean
+          joined_at?: string
           last_name?: string | null
           status?: Database["public"]["Enums"]["person_status"]
           updated_at?: string
@@ -256,6 +222,8 @@ export type Database = {
           family_space_id?: string
           first_name?: string
           id?: string
+          is_admin?: boolean
+          joined_at?: string
           last_name?: string | null
           status?: Database["public"]["Enums"]["person_status"]
           updated_at?: string

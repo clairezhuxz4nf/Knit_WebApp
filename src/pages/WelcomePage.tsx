@@ -28,7 +28,7 @@ const WelcomePage = () => {
 
     try {
       const { data, error } = await supabase
-        .from("family_members")
+        .from("people")
         .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
