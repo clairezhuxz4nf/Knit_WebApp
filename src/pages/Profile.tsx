@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Calendar, Phone, LogOut, Save, Camera } from "lucide-react";
+import { User, Calendar, Phone, LogOut, Save, Camera, Loader2 } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
@@ -25,6 +25,7 @@ const Profile = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [profile, setProfile] = useState<Profile>({
     display_name: "",
     birthday: "",
@@ -32,6 +33,7 @@ const Profile = () => {
   });
   const [personId, setPersonId] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -46,7 +48,7 @@ const Profile = () => {
       // First, try to get the user's person record (source of truth for family tree)
       const { data: personData } = await supabase
         .from("people")
-        .select("id, first_name, last_name, birth_date")
+        .select("id, first_name, last_name, birth_date, avatar_url")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -58,7 +60,7 @@ const Profile = () => {
         setProfile({
           display_name: fullName,
           birthday: personData.birth_date || "",
-          avatar_url: "",
+          avatar_url: personData.avatar_url || "",
         });
       } else {
         // Fall back to profiles table if no person record exists
@@ -85,6 +87,81 @@ const Profile = () => {
       console.error("Error fetching profile:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        variant: "destructive",
+        title: "Invalid file",
+        description: "Please select an image file",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        title: "File too large",
+        description: "Please select an image under 5MB",
+      });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      // Create file path: userId/avatar.ext
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      const avatarUrl = urlData.publicUrl;
+
+      // Update all tables to sync avatar
+      if (personId) {
+        await supabase
+          .from("people")
+          .update({ avatar_url: avatarUrl })
+          .eq("id", personId);
+      }
+
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl })
+        .eq("id", user.id);
+
+      setProfile((prev) => ({ ...prev, avatar_url: avatarUrl }));
+
+      toast({
+        title: "Photo uploaded",
+        description: "Your profile picture has been updated",
+      });
+    } catch (error: any) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        variant: "destructive",
+        title: "Upload failed",
+        description: "Could not upload profile picture",
+      });
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -181,11 +258,34 @@ const Profile = () => {
           className="text-center"
         >
           <div className="relative inline-block">
-            <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
-              <User className="w-12 h-12 text-primary" />
+            <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mx-auto overflow-hidden">
+              {profile.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-12 h-12 text-primary" />
+              )}
             </div>
-            <button className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg">
-              <Camera className="w-4 h-4" />
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleAvatarUpload}
+              accept="image/*"
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg disabled:opacity-50"
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Camera className="w-4 h-4" />
+              )}
             </button>
           </div>
         </motion.div>
