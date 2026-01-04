@@ -331,10 +331,26 @@ const WorkingProjects = () => {
 
                         {/* Meta Info */}
                         <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {getRelativeTime(project.updated_at)}
-                          </span>
+                          {project.event?.event_date ? (
+                            <>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {new Date(project.event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                              {(() => {
+                                const daysLeft = Math.ceil((new Date(project.event.event_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                                if (daysLeft < 0) return <span className="text-muted-foreground">Past due</span>;
+                                if (daysLeft === 0) return <span className="text-destructive font-medium">Due today</span>;
+                                if (daysLeft <= 7) return <span className="text-destructive font-medium">{daysLeft} day{daysLeft > 1 ? 's' : ''} left</span>;
+                                return <span className="text-primary">{daysLeft} days left</span>;
+                              })()}
+                            </>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {getRelativeTime(project.updated_at)}
+                            </span>
+                          )}
                         </div>
                       </div>
 
