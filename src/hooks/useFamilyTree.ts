@@ -203,12 +203,13 @@ export function useFamilyTree(familySpaceId: string | null) {
           ? `${updates.first_name} ${updates.last_name}`
           : updates.first_name;
 
-        // Sync to profiles table
+        // Sync to profiles table (including avatar)
         await supabase
           .from('profiles')
           .update({
             display_name: fullName || null,
             birthday: updates.birth_date || null,
+            avatar_url: updates.avatar_url ?? undefined,
           })
           .eq('id', user.id);
 
