@@ -291,13 +291,8 @@ const WorkingProjects = () => {
                               {project.title}
                             </h3>
                             <p className="text-xs text-muted-foreground">
-                              {typeInfo.label}
+                              {project.event ? project.event.title : typeInfo.label}
                             </p>
-                            {project.event && (
-                              <p className="text-xs text-primary mt-0.5">
-                                Associated Event: {project.event.title}
-                              </p>
-                            )}
                           </div>
                           {isAdmin && (
                             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full whitespace-nowrap">
