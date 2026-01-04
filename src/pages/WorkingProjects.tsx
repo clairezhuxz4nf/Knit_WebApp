@@ -31,6 +31,7 @@ interface Project {
   created_by: string;
   updated_at: string;
   event_id: string | null;
+  emoji: string | null;
   event?: {
     id: string;
     title: string;
@@ -77,7 +78,7 @@ const WorkingProjects = () => {
       // Fetch projects and pending invitations in parallel
       const [projectsResult, invitationsResult] = await Promise.all([
         supabase
-          .from("projects")
+        .from("projects")
           .select(`
             id,
             title,
@@ -87,6 +88,7 @@ const WorkingProjects = () => {
             created_by,
             updated_at,
             event_id,
+            emoji,
             event:events(id, title, event_date)
           `)
           .order("updated_at", { ascending: false }),
@@ -282,7 +284,7 @@ const WorkingProjects = () => {
                             : "bg-yarn-teal/20"
                         }`}
                       >
-                        {typeInfo.icon}
+                        {project.emoji || typeInfo.icon}
                       </div>
 
                       <div className="flex-1 min-w-0">
