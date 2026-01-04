@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ChevronRight, Users, Clock } from "lucide-react";
@@ -8,62 +8,101 @@ import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyButton from "@/components/ui/CozyButton";
 import YarnDecoration from "@/components/ui/YarnDecoration";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const projectTypes = {
   "culture-story": { label: "Culture Story", icon: "🌍", color: "sage" },
   "food-family": { label: "Food at Family", icon: "🍳", color: "butter" },
   "member-story": { label: "Member Story", icon: "👤", color: "rose" },
   "traditions": { label: "Traditions", icon: "🎋", color: "teal" },
+  "milestone": { label: "Milestone", icon: "🎉", color: "rose" },
+  "travel": { label: "Travel Memories", icon: "✈️", color: "sage" },
+  "default": { label: "Project", icon: "📁", color: "sage" },
 };
+
+interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  progress: number;
+  status: string;
+  created_by: string;
+  updated_at: string;
+  event_id: string | null;
+  event?: {
+    id: string;
+    title: string;
+  } | null;
+}
 
 const WorkingProjects = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<"all" | "mine" | "invited">("all");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const projects = [
-    {
-      id: "1",
-      title: "Grandma's Recipe Collection",
-      type: "food-family" as keyof typeof projectTypes,
-      progress: 65,
-      contributors: ["Mom", "Aunt Lisa", "You"],
-      lastUpdated: "2 hours ago",
-      isAdmin: true,
-    },
-    {
-      id: "2",
-      title: "Dad's Childhood Stories",
-      type: "member-story" as keyof typeof projectTypes,
-      progress: 30,
-      contributors: ["Dad", "You"],
-      lastUpdated: "Yesterday",
-      isAdmin: false,
-    },
-    {
-      id: "3",
-      title: "Spring Festival Traditions",
-      type: "culture-story" as keyof typeof projectTypes,
-      progress: 80,
-      contributors: ["Grandpa", "Mom", "Dad", "You"],
-      lastUpdated: "3 days ago",
-      isAdmin: true,
-    },
-    {
-      id: "4",
-      title: "Thanksgiving 2024 Memories",
-      type: "traditions" as keyof typeof projectTypes,
-      progress: 15,
-      contributors: ["You", "Sister"],
-      lastUpdated: "1 week ago",
-      isAdmin: true,
-    },
-  ];
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!user) return;
+      
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .select(`
+            id,
+            title,
+            description,
+            progress,
+            status,
+            created_by,
+            updated_at,
+            event_id,
+            event:events(id, title)
+          `)
+          .order("updated_at", { ascending: false });
+
+        if (error) throw error;
+        setProjects(data || []);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, [user]);
 
   const filteredProjects = projects.filter((p) => {
     if (filter === "all") return true;
-    if (filter === "mine") return p.isAdmin;
-    return !p.isAdmin;
+    if (filter === "mine") return p.created_by === user?.id;
+    return p.created_by !== user?.id;
   });
+
+  const getRelativeTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffHours < 1) return "Just now";
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+  };
+
+  const getProjectType = (description: string | null) => {
+    if (!description) return projectTypes.default;
+    const key = Object.keys(projectTypes).find(k => 
+      description.toLowerCase().includes(k.replace("-", " "))
+    );
+    return key ? projectTypes[key as keyof typeof projectTypes] : projectTypes.default;
+  };
 
   return (
     <MobileLayout className="pb-20">
@@ -94,101 +133,109 @@ const WorkingProjects = () => {
 
       {/* Projects List */}
       <div className="flex-1 px-6 pb-24 overflow-y-auto">
-        <div className="space-y-3">
-          {filteredProjects.map((project, index) => {
-            const typeInfo = projectTypes[project.type];
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredProjects.map((project, index) => {
+              const typeInfo = getProjectType(project.description);
+              const isAdmin = project.created_by === user?.id;
 
-            return (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.08 }}
-              >
-                <CozyCard
-                  variant="elevated"
-                  className="cursor-pointer hover:shadow-cozy transition-all group"
-                  onClick={() => navigate(`/project/${project.id}`)}
+              return (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.08 }}
                 >
-                  <div className="flex items-start gap-4">
-                    <div
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${
-                        typeInfo.color === "rose"
-                          ? "bg-yarn-rose/20"
-                          : typeInfo.color === "sage"
-                          ? "bg-yarn-sage/20"
-                          : typeInfo.color === "butter"
-                          ? "bg-yarn-butter/20"
-                          : "bg-yarn-teal/20"
-                      }`}
-                    >
-                      {typeInfo.icon}
-                    </div>
+                  <CozyCard
+                    variant="elevated"
+                    className="cursor-pointer hover:shadow-cozy transition-all group"
+                    onClick={() => navigate(`/project/${project.id}`)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${
+                          typeInfo.color === "rose"
+                            ? "bg-yarn-rose/20"
+                            : typeInfo.color === "sage"
+                            ? "bg-yarn-sage/20"
+                            : typeInfo.color === "butter"
+                            ? "bg-yarn-butter/20"
+                            : "bg-yarn-teal/20"
+                        }`}
+                      >
+                        {typeInfo.icon}
+                      </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-semibold text-foreground truncate">
-                            {project.title}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            {typeInfo.label}
-                          </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h3 className="font-semibold text-foreground truncate">
+                              {project.title}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              {typeInfo.label}
+                            </p>
+                            {project.event && (
+                              <p className="text-xs text-primary mt-0.5">
+                                Associated Event: {project.event.title}
+                              </p>
+                            )}
+                          </div>
+                          {isAdmin && (
+                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full whitespace-nowrap">
+                              Admin
+                            </span>
+                          )}
                         </div>
-                        {project.isAdmin && (
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full whitespace-nowrap">
-                            Admin
+
+                        {/* Progress Bar */}
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span className="text-muted-foreground">
+                              {project.progress}% complete
+                            </span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <motion.div
+                              className={`h-full rounded-full ${
+                                typeInfo.color === "rose"
+                                  ? "bg-yarn-rose"
+                                  : typeInfo.color === "sage"
+                                  ? "bg-yarn-sage"
+                                  : typeInfo.color === "butter"
+                                  ? "bg-yarn-butter"
+                                  : "bg-yarn-teal"
+                              }`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${project.progress}%` }}
+                              transition={{ delay: index * 0.1 + 0.2, duration: 0.5 }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Meta Info */}
+                        <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {getRelativeTime(project.updated_at)}
                           </span>
-                        )}
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">
-                            {project.progress}% complete
-                          </span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <motion.div
-                            className={`h-full rounded-full ${
-                              typeInfo.color === "rose"
-                                ? "bg-yarn-rose"
-                                : typeInfo.color === "sage"
-                                ? "bg-yarn-sage"
-                                : typeInfo.color === "butter"
-                                ? "bg-yarn-butter"
-                                : "bg-yarn-teal"
-                            }`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${project.progress}%` }}
-                            transition={{ delay: index * 0.1 + 0.2, duration: 0.5 }}
-                          />
                         </div>
                       </div>
 
-                      {/* Meta Info */}
-                      <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          {project.contributors.length}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {project.lastUpdated}
-                        </span>
-                      </div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-1" />
                     </div>
+                  </CozyCard>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
-                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 mt-1" />
-                  </div>
-                </CozyCard>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {filteredProjects.length === 0 && (
+        {!loading && filteredProjects.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

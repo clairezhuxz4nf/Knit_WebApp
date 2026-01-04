@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Users, ChevronDown, Check } from "lucide-react";
+import { Calendar, Users, Check } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import CozyButton from "@/components/ui/CozyButton";
 import CozyCard from "@/components/ui/CozyCard";
 import CozyInput from "@/components/ui/CozyInput";
 import YarnDecoration from "@/components/ui/YarnDecoration";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const projectTypes = [
   { id: "culture-story", label: "Culture Story", icon: "🌍", description: "Preserve cultural heritage and traditions" },
@@ -33,6 +36,7 @@ interface FamilyMember {
 const CreateProject = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [projectName, setProjectName] = useState("");
   const [eventName, setEventName] = useState("");
@@ -41,6 +45,9 @@ const CreateProject = () => {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [outputType, setOutputType] = useState("storybook");
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [eventId, setEventId] = useState<string | null>(null);
+  const [familySpaceId, setFamilySpaceId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     // Load family members from storage
@@ -50,16 +57,38 @@ const CreateProject = () => {
       setFamilyMembers(parsed.members || []);
     }
 
-    // Pre-fill from navigation state
+    // Pre-fill from navigation state (when coming from an event)
     if (location.state) {
-      const { event, date } = location.state as { event?: string; date?: string };
+      const { event, date, eventId: passedEventId, familySpaceId: passedFamilySpaceId } = location.state as { 
+        event?: string; 
+        date?: string; 
+        eventId?: string;
+        familySpaceId?: string;
+      };
       if (event) setEventName(event);
       if (date) {
         const dateObj = new Date(date);
         setEventDate(dateObj.toISOString().split("T")[0]);
       }
+      if (passedEventId) setEventId(passedEventId);
+      if (passedFamilySpaceId) setFamilySpaceId(passedFamilySpaceId);
     }
-  }, [location.state]);
+
+    // Fetch user's family space if not passed
+    const fetchFamilySpace = async () => {
+      if (!user || familySpaceId) return;
+      const { data } = await supabase
+        .from("family_members")
+        .select("family_space_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setFamilySpaceId(data.family_space_id);
+      }
+    };
+    fetchFamilySpace();
+  }, [location.state, user, familySpaceId]);
 
   const toggleMember = (memberId: string) => {
     setSelectedMembers((prev) =>
@@ -69,29 +98,41 @@ const CreateProject = () => {
     );
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < 4) {
       setStep(step + 1);
     } else {
-      // Save project and navigate
-      const projectId = Date.now().toString();
-      const project = {
-        id: projectId,
-        projectName,
-        eventName,
-        eventDate,
-        projectType,
-        selectedMembers,
-        outputType,
-        createdAt: new Date().toISOString(),
-      };
-      
-      // Save to localStorage for demo
-      const projects = JSON.parse(localStorage.getItem("projects") || "[]");
-      projects.push(project);
-      localStorage.setItem("projects", JSON.stringify(projects));
-      
-      navigate(`/project/${projectId}`);
+      if (!user || !familySpaceId) {
+        toast.error("Please log in and join a family space first");
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .insert({
+            title: projectName,
+            description: eventName,
+            family_space_id: familySpaceId,
+            created_by: user.id,
+            event_id: eventId,
+            status: "in_progress",
+            progress: 0,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast.success("Project created successfully!");
+        navigate(`/project/${data.id}`);
+      } catch (error: any) {
+        console.error("Error creating project:", error);
+        toast.error(error.message || "Failed to create project");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -364,9 +405,9 @@ const CreateProject = () => {
             size="lg"
             fullWidth
             onClick={handleNext}
-            disabled={!canProceed()}
+            disabled={!canProceed() || isSubmitting}
           >
-            {step === 4 ? "Start Project" : "Continue"}
+            {isSubmitting ? "Creating..." : step === 4 ? "Start Project" : "Continue"}
           </CozyButton>
         </div>
       </div>

@@ -83,6 +83,13 @@ const DEFAULT_SETTINGS: EventSettings = {
   anniversaries: [],
   customEvents: []
 };
+interface DbEvent {
+  id: string;
+  title: string;
+  event_date: string;
+  event_type: string;
+  family_space_id: string;
+}
 const EventChronicle = () => {
   const navigate = useNavigate();
   const {
@@ -90,6 +97,8 @@ const EventChronicle = () => {
     loading
   } = useAuth();
   const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [dbEvents, setDbEvents] = useState<DbEvent[]>([]);
+  const [familySpaceId, setFamilySpaceId] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [eventSettings, setEventSettings] = useState<EventSettings>(DEFAULT_SETTINGS);
@@ -105,7 +114,7 @@ const EventChronicle = () => {
   const fetchData = async () => {
     if (!user) return;
     try {
-      // Fetch family members and event settings in parallel
+      // Fetch family members, event settings, and database events in parallel
       const [memberResult, settingsResult] = await Promise.all([fetchFamilyMembers(), fetchEventSettings()]);
       if (memberResult === "redirect") return;
     } catch (error) {
@@ -125,12 +134,19 @@ const EventChronicle = () => {
       navigate("/welcome-page");
       return "redirect";
     }
-    const {
-      data: membersData,
-      error: membersError
-    } = await supabase.from("family_members").select("id, display_name, birthday").eq("family_space_id", memberData.family_space_id);
-    if (membersError) throw membersError;
-    setMembers(membersData || []);
+    setFamilySpaceId(memberData.family_space_id);
+    
+    // Fetch members and database events for this family space
+    const [membersResult, eventsResult] = await Promise.all([
+      supabase.from("family_members").select("id, display_name, birthday").eq("family_space_id", memberData.family_space_id),
+      supabase.from("events").select("id, title, event_date, event_type, family_space_id").eq("family_space_id", memberData.family_space_id)
+    ]);
+    
+    if (membersResult.error) throw membersResult.error;
+    if (eventsResult.error) throw eventsResult.error;
+    
+    setMembers(membersResult.data || []);
+    setDbEvents(eventsResult.data || []);
   };
   const fetchEventSettings = async () => {
     if (!user) return;
@@ -181,9 +197,34 @@ const EventChronicle = () => {
     }
   };
   const getAllEvents = () => {
-    const events = [];
+    const events: Array<{
+      id: string;
+      dbEventId?: string;
+      title: string;
+      date: Date;
+      type: string;
+      icon: string;
+      color: "rose" | "sage" | "butter" | "teal";
+    }> = [];
     const today = new Date();
     const year = today.getFullYear();
+
+    // Add database events first
+    dbEvents.forEach(dbEvent => {
+      const eventDate = new Date(dbEvent.event_date);
+      // Only show future or today's events
+      if (eventDate >= new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+        events.push({
+          id: `db-${dbEvent.id}`,
+          dbEventId: dbEvent.id,
+          title: dbEvent.title,
+          date: eventDate,
+          type: dbEvent.event_type,
+          icon: "📅",
+          color: "teal" as const
+        });
+      }
+    });
 
     // Add member birthdays from database
     if (eventSettings.showBirthdays) {
@@ -356,7 +397,9 @@ const EventChronicle = () => {
                   <CozyCard variant="elevated" className="cursor-pointer hover:shadow-cozy transition-all group" onClick={() => navigate("/create-project", {
                 state: {
                   event: event.title,
-                  date: event.date.toISOString()
+                  date: event.date.toISOString(),
+                  eventId: event.dbEventId || null,
+                  familySpaceId: familySpaceId
                 }
               })}>
                     <div className="flex items-start gap-4">
