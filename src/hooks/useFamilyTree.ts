@@ -194,6 +194,34 @@ export function useFamilyTree(familySpaceId: string | null) {
 
       if (error) throw error;
 
+      // Find the person to check if it's the current user
+      const person = people.find(p => p.id === personId);
+      
+      // If this is the current user's node, sync to profiles and family_members
+      if (person?.user_id && person.user_id === user?.id) {
+        const fullName = updates.last_name 
+          ? `${updates.first_name} ${updates.last_name}`
+          : updates.first_name;
+
+        // Sync to profiles table
+        await supabase
+          .from('profiles')
+          .update({
+            display_name: fullName || null,
+            birthday: updates.birth_date || null,
+          })
+          .eq('id', user.id);
+
+        // Sync to family_members table
+        await supabase
+          .from('family_members')
+          .update({
+            display_name: fullName || null,
+            birthday: updates.birth_date || null,
+          })
+          .eq('user_id', user.id);
+      }
+
       setPeople(prev => prev.map(p => 
         p.id === personId ? { ...p, ...updates } : p
       ));
@@ -211,7 +239,7 @@ export function useFamilyTree(familySpaceId: string | null) {
       });
       throw error;
     }
-  }, []);
+  }, [people, user]);
 
   // Generate invite code for a placeholder
   const generateInvite = useCallback(async (targetPersonId: string): Promise<string | null> => {
