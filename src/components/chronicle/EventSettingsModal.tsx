@@ -51,9 +51,23 @@ const MONTHS = [
 
 const ICONS = ["🎉", "🎊", "💫", "⭐", "🌟", "💖", "🎁", "🏠", "✈️", "🎓", "💍", "🎂", "🎄", "🦃", "🐣", "🎃", "💝"];
 
+// Common public holidays that can be quickly added
+const PUBLIC_HOLIDAYS = [
+  { id: "christmas", name: "Christmas", month: 11, day: 25, icon: "🎄" },
+  { id: "thanksgiving", name: "Thanksgiving", month: 10, day: 28, icon: "🦃" },
+  { id: "easter", name: "Easter", month: 3, day: 20, icon: "🐣" },
+  { id: "halloween", name: "Halloween", month: 9, day: 31, icon: "🎃" },
+  { id: "valentines", name: "Valentine's Day", month: 1, day: 14, icon: "💝" },
+  { id: "new_year", name: "New Year's Day", month: 0, day: 1, icon: "🎆" },
+  { id: "mothers_day", name: "Mother's Day", month: 4, day: 11, icon: "💐" },
+  { id: "fathers_day", name: "Father's Day", month: 5, day: 15, icon: "👔" },
+  { id: "independence_day", name: "Independence Day", month: 6, day: 4, icon: "🎇" },
+  { id: "labor_day", name: "Labor Day", month: 8, day: 2, icon: "🛠️" },
+];
+
 const CATEGORY_LABELS: Record<string, string> = {
   birthday: "Birthdays",
-  festival: "Festivals",
+  festival: "Festivals & Holidays",
   anniversary: "Anniversaries",
   custom: "Custom Events",
   general: "General Events",
@@ -187,6 +201,33 @@ const EventSettingsModal = ({
     }
   };
 
+  const addPublicHoliday = async (holiday: typeof PUBLIC_HOLIDAYS[0]) => {
+    if (!familySpaceId || !user) return;
+
+    try {
+      const eventDate = new Date(new Date().getFullYear(), holiday.month, holiday.day);
+
+      const { error } = await supabase.from("events").insert({
+        family_space_id: familySpaceId,
+        created_by: user.id,
+        title: holiday.name,
+        event_date: eventDate.toISOString().split("T")[0],
+        event_type: "festival",
+        event_category: "festival",
+        icon: holiday.icon,
+        is_recurring: true,
+      });
+
+      if (error) throw error;
+
+      toast.success(`${holiday.name} added!`);
+      onEventsChange();
+    } catch (error) {
+      console.error("Error adding holiday:", error);
+      toast.error("Failed to add holiday");
+    }
+  };
+
   // Group events by category
   const eventsByCategory = events.reduce((acc, event) => {
     const category = event.event_category || "custom";
@@ -196,6 +237,15 @@ const EventSettingsModal = ({
   }, {} as Record<string, DbEvent[]>);
 
   const categories = Object.keys(eventsByCategory).sort();
+
+  // Find which public holidays are not yet added
+  const existingHolidayNames = events
+    .filter((e) => e.event_category === "festival")
+    .map((e) => e.title.toLowerCase());
+  
+  const availableHolidays = PUBLIC_HOLIDAYS.filter(
+    (h) => !existingHolidayNames.includes(h.name.toLowerCase())
+  );
 
   return (
     <AnimatePresence>
@@ -344,6 +394,36 @@ const EventSettingsModal = ({
                     </div>
                   </CozyCard>
                 </motion.div>
+              )}
+
+              {/* Quick Add Public Holidays */}
+              {availableHolidays.length > 0 && (
+                <CozyCard variant="default">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-yarn-sage/20 flex items-center justify-center">
+                      <Gift className="w-5 h-5 text-yarn-sage" />
+                    </div>
+                    <div>
+                      <Label className="text-base font-semibold">Quick Add Holidays</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Tap to add popular holidays
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {availableHolidays.map((holiday) => (
+                      <button
+                        key={holiday.id}
+                        onClick={() => addPublicHoliday(holiday)}
+                        className="flex items-center gap-2 px-3 py-2 bg-muted/50 hover:bg-yarn-sage/20 rounded-xl transition-colors border border-transparent hover:border-yarn-sage/30"
+                      >
+                        <span className="text-lg">{holiday.icon}</span>
+                        <span className="text-sm font-medium">{holiday.name}</span>
+                        <Plus className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    ))}
+                  </div>
+                </CozyCard>
               )}
 
               {/* Events by Category */}
