@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -13,7 +13,6 @@ import {
   UserPlus,
   UserMinus,
   Loader2,
-  Camera,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,7 +60,6 @@ interface Project {
   id: string;
   title: string;
   description: string | null;
-  cover_image_url: string | null;
   created_by: string;
   family_space_id: string;
   status: string;
@@ -96,8 +94,6 @@ const ProjectSettingsModal = ({
   const [editDescription, setEditDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [uploadingIcon, setUploadingIcon] = useState(false);
-  const iconInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen && projectId) {
@@ -267,63 +263,6 @@ const ProjectSettingsModal = ({
       toast.error(error.message || "Failed to update project");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleIconUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !project) return;
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Please select an image under 5MB");
-      return;
-    }
-
-    setUploadingIcon(true);
-    try {
-      // Create file path: projectId/icon.ext
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${projectId}/icon.${fileExt}`;
-
-      // Upload to storage
-      const { error: uploadError } = await supabase.storage
-        .from("project-assets")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("project-assets")
-        .getPublicUrl(filePath);
-
-      const iconUrl = urlData.publicUrl;
-
-      // Update project with new cover_image_url
-      const { data, error } = await supabase
-        .from("projects")
-        .update({ cover_image_url: iconUrl })
-        .eq("id", projectId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setProject(data);
-      onProjectUpdated(data);
-      toast.success("Project icon updated!");
-    } catch (error: any) {
-      console.error("Error uploading icon:", error);
-      toast.error("Failed to upload icon");
-    } finally {
-      setUploadingIcon(false);
     }
   };
 
@@ -561,53 +500,6 @@ const ProjectSettingsModal = ({
                   </div>
                 ) : (
                   <>
-                    {/* Project Icon */}
-                    <CozyCard>
-                      <div className="flex items-center gap-4">
-                        <div className="relative">
-                          <div className="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center overflow-hidden">
-                            {project?.cover_image_url ? (
-                              <img
-                                src={project.cover_image_url}
-                                alt="Project icon"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <Book className="w-8 h-8 text-primary" />
-                            )}
-                          </div>
-                          {isAdmin && (
-                            <>
-                              <input
-                                type="file"
-                                ref={iconInputRef}
-                                onChange={handleIconUpload}
-                                accept="image/*"
-                                className="hidden"
-                              />
-                              <button
-                                onClick={() => iconInputRef.current?.click()}
-                                disabled={uploadingIcon}
-                                className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg disabled:opacity-50"
-                              >
-                                {uploadingIcon ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Camera className="w-3 h-3" />
-                                )}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-foreground">Project Icon</p>
-                          <p className="text-sm text-muted-foreground">
-                            {project?.cover_image_url ? "Tap camera to change" : "Add a custom icon"}
-                          </p>
-                        </div>
-                      </div>
-                    </CozyCard>
-
                     <CozyCard>
                       <div className="flex items-center justify-between">
                         <div>
