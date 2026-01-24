@@ -38,6 +38,7 @@ const Gems = () => {
   const [familySpaceId, setFamilySpaceId] = useState<string | null>(null);
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<FamilyPhoto | null>(null);
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
 
   const categories: AssetCategory[] = [
     { id: "photos", title: "Photos", description: "Family pictures and albums", icon: "📸", count: photos.length, color: "rose" },
@@ -73,7 +74,29 @@ const Gems = () => {
           .single();
 
         if (spaceData?.cover_photo_url) {
-          setCoverPhotoUrl(spaceData.cover_photo_url);
+          // Generate signed URL for cover photo (stored path, not URL)
+          const coverPath = spaceData.cover_photo_url;
+          // Check if it's already a full URL (legacy) or a path
+          if (coverPath.startsWith('http')) {
+            // Legacy: already a full URL - still try to get signed URL from path
+            const pathMatch = coverPath.match(/family-gems\/(.+)$/);
+            if (pathMatch) {
+              const { data: signedData } = await supabase.storage
+                .from("family-gems")
+                .createSignedUrl(pathMatch[1], 3600);
+              if (signedData?.signedUrl) {
+                setCoverPhotoUrl(signedData.signedUrl);
+              }
+            }
+          } else {
+            // New format: just a path
+            const { data: signedData } = await supabase.storage
+              .from("family-gems")
+              .createSignedUrl(coverPath, 3600);
+            if (signedData?.signedUrl) {
+              setCoverPhotoUrl(signedData.signedUrl);
+            }
+          }
         }
 
         // Fetch photos
@@ -112,20 +135,23 @@ const Gems = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("family-gems")
-        .getPublicUrl(filePath);
-
-      // Update family space with cover photo
+      // Store the file path (not URL) for signed URL generation
+      // Update family space with cover photo path
       const { error: updateError } = await supabase
         .from("family_spaces")
-        .update({ cover_photo_url: urlData.publicUrl })
+        .update({ cover_photo_url: filePath })
         .eq("id", familySpaceId);
 
       if (updateError) throw updateError;
 
-      setCoverPhotoUrl(urlData.publicUrl);
+      // Generate signed URL for immediate display
+      const { data: signedUrlData } = await supabase.storage
+        .from("family-gems")
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
+      
+      if (signedUrlData?.signedUrl) {
+        setCoverPhotoUrl(signedUrlData.signedUrl);
+      }
       toast.success("Family photo uploaded!");
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -193,10 +219,25 @@ const Gems = () => {
     }
   };
 
-  const getPhotoUrl = (filePath: string) => {
-    const { data } = supabase.storage.from("family-gems").getPublicUrl(filePath);
-    return data.publicUrl;
+  const getPhotoUrl = async (filePath: string): Promise<string> => {
+    const { data } = await supabase.storage
+      .from("family-gems")
+      .createSignedUrl(filePath, 3600); // 1 hour expiry
+    return data?.signedUrl || "";
   };
+
+  // Load signed URL when a photo is selected
+  useEffect(() => {
+    const loadSelectedPhotoUrl = async () => {
+      if (selectedPhoto) {
+        const url = await getPhotoUrl(selectedPhoto.file_path);
+        setSelectedPhotoUrl(url);
+      } else {
+        setSelectedPhotoUrl(null);
+      }
+    };
+    loadSelectedPhotoUrl();
+  }, [selectedPhoto]);
 
   if (loading) {
     return (
@@ -377,11 +418,15 @@ const Gems = () => {
           >
             <X className="w-6 h-6" />
           </button>
-          <img
-            src={getPhotoUrl(selectedPhoto.file_path)}
-            alt={selectedPhoto.file_name}
-            className="max-w-full max-h-full object-contain rounded-lg"
-          />
+          {selectedPhotoUrl ? (
+            <img
+              src={selectedPhotoUrl}
+              alt={selectedPhoto.file_name}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+          ) : (
+            <Loader2 className="w-8 h-8 text-white animate-spin" />
+          )}
         </motion.div>
       )}
 
