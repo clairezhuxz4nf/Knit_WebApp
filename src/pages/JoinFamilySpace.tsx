@@ -28,12 +28,11 @@ const JoinFamilySpace = () => {
 
     setIsJoining(true);
     try {
-      // Find the family space by code
-      const { data: spaceData, error: spaceError } = await supabase
-        .from("family_spaces")
-        .select("id, name")
-        .eq("family_code", inviteCode.toUpperCase())
-        .maybeSingle();
+      // Find the family space by code using secure RPC function
+      const { data: spaceResults, error: spaceError } = await supabase
+        .rpc("lookup_family_space_by_code", { _code: inviteCode });
+      
+      const spaceData = spaceResults?.[0] || null;
 
       if (spaceError) throw spaceError;
 
