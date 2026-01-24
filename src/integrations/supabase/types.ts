@@ -502,6 +502,13 @@ export type Database = {
         Args: { _person_id: string; _user_id: string }
         Returns: boolean
       }
+      lookup_family_space_by_code: {
+        Args: { _code: string }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
       seed_default_festivals: {
         Args: { _created_by: string; _family_space_id: string }
         Returns: undefined
