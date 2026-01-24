@@ -160,6 +160,18 @@ const EventSettingsModal = ({
     return new Date(2024, month + 1, 0).getDate();
   };
 
+  // Map event_category to valid event_type values
+  const getCategoryEventType = (category: string): string => {
+    const typeMap: Record<string, string> = {
+      birthday: "birthday",
+      anniversary: "anniversary",
+      festival: "holiday",
+      custom: "general",
+      general: "general",
+    };
+    return typeMap[category] || "general";
+  };
+
   const addNewEvent = async () => {
     if (!newEvent.title.trim() || !familySpaceId || !user) return;
 
@@ -171,7 +183,7 @@ const EventSettingsModal = ({
         created_by: user.id,
         title: newEvent.title,
         event_date: eventDate.toISOString().split("T")[0],
-        event_type: newEvent.category,
+        event_type: getCategoryEventType(newEvent.category),
         event_category: newEvent.category,
         icon: newEvent.icon,
         is_recurring: newEvent.isRecurring,
@@ -212,7 +224,7 @@ const EventSettingsModal = ({
         created_by: user.id,
         title: holiday.name,
         event_date: eventDate.toISOString().split("T")[0],
-        event_type: "festival",
+        event_type: "holiday",
         event_category: "festival",
         icon: holiday.icon,
         is_recurring: true,
