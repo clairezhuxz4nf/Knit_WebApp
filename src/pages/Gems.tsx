@@ -42,7 +42,7 @@ const Gems = () => {
 
   const categories: AssetCategory[] = [
     { id: "photos", title: "Photos", description: "Family pictures and albums", icon: "📸", count: photos.length, color: "rose" },
-    { id: "stories", title: "Stories", description: "Written memories and tales", icon: "📝", count: 0, color: "butter" },
+    { id: "stories", title: "Stories", description: "Written memories and tales", icon: "📝", count: 6, color: "butter" },
     { id: "storybooks", title: "Storybooks", description: "Compiled family books", icon: "📚", count: 0, color: "sage" },
   ];
 
