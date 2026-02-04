@@ -7,6 +7,7 @@ import {
   MicOff,
   Image as ImageIcon,
   Book,
+  Radio,
 } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
@@ -23,6 +24,8 @@ interface Message {
   content: string;
   timestamp: Date;
   media?: { type: "image" | "video"; url: string }[];
+  isListening?: boolean;
+  followUpQuestions?: string[];
 }
 
 interface Project {
@@ -43,16 +46,33 @@ const ProjectPage = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
+      type: "user",
+      content: "Here's a photo from grandma's 70th birthday party!",
+      timestamp: new Date(Date.now() - 120000),
+      media: [
+        {
+          type: "image",
+          url: "https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?w=400",
+        },
+      ],
+    },
+    {
+      id: "2",
       type: "bot",
-      content:
-        "Welcome to your family storybook project! 🧶\n\nI'm here to help you collect and organize your family stories. Let's start by sharing what makes this occasion special. What's the first memory that comes to mind?",
-      timestamp: new Date(),
+      content: "What a beautiful moment captured! 📷 I'd love to hear more about this special day. Here are some questions to help us dig deeper:",
+      timestamp: new Date(Date.now() - 60000),
+      followUpQuestions: [
+        "Do you remember what was happening right before or after this photo?",
+        "Who took this photo—and why that moment?",
+        "What do you notice first when you look at this now?",
+      ],
     },
   ]);
   const [inputText, setInputText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isCompiled, setIsCompiled] = useState(false);
+  const [isListening] = useState(true); // AI is always listening
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -192,6 +212,32 @@ const ProjectPage = () => {
         onSettingsClick={() => setShowSettings(true)}
       />
 
+      {/* AI Listening Indicator */}
+      <motion.div 
+        className="mx-4 mb-2"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <div className="flex items-center justify-center gap-2 py-2 px-4 bg-primary/10 rounded-full">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+          >
+            <Radio className="w-4 h-4 text-primary" />
+          </motion.div>
+          <span className="text-xs font-medium text-primary">AI is listening to your conversation</span>
+          <motion.div 
+            className="flex gap-0.5"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+          >
+            <span className="w-1 h-1 rounded-full bg-primary" />
+            <span className="w-1 h-1 rounded-full bg-primary" />
+            <span className="w-1 h-1 rounded-full bg-primary" />
+          </motion.div>
+        </div>
+      </motion.div>
+
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         <AnimatePresence>
@@ -240,6 +286,24 @@ const ProjectPage = () => {
                       className="mt-2 rounded-lg max-w-full"
                     />
                   ))}
+
+                  {/* Follow-up Questions */}
+                  {message.followUpQuestions && message.followUpQuestions.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {message.followUpQuestions.map((question, qIndex) => (
+                        <motion.button
+                          key={qIndex}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: qIndex * 0.1 + 0.3 }}
+                          onClick={() => setInputText(question)}
+                          className="w-full text-left p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-xs text-foreground/80 border border-border/50"
+                        >
+                          💭 {question}
+                        </motion.button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <p
