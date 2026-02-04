@@ -338,7 +338,14 @@ const Gems = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 + 0.2 }}
             >
-              <CozyCard className="cursor-pointer hover:shadow-cozy transition-all group">
+              <CozyCard 
+                className="cursor-pointer hover:shadow-cozy transition-all group"
+                onClick={() => {
+                  if (category.id === "stories") {
+                    navigate("/stories");
+                  }
+                }}
+              >
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
