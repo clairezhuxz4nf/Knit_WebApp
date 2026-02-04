@@ -43,7 +43,9 @@ const Gems = () => {
   const categories: AssetCategory[] = [
     { id: "photos", title: "Photos", description: "Family pictures and albums", icon: "📸", count: photos.length, color: "rose" },
     { id: "stories", title: "Stories", description: "Written memories and tales", icon: "📝", count: 6, color: "butter" },
-    { id: "storybooks", title: "Storybooks", description: "Compiled family books", icon: "📚", count: 0, color: "sage" },
+    { id: "podcasts", title: "Podcasts", description: "Audio stories from family", icon: "🎙️", count: 5, color: "sage" },
+    { id: "freespace", title: "Family Moments", description: "Share life together", icon: "💬", count: 4, color: "rose" },
+    { id: "storybooks", title: "Storybooks", description: "Compiled family books", icon: "📚", count: 0, color: "butter" },
   ];
 
   useEffect(() => {
@@ -343,6 +345,10 @@ const Gems = () => {
                 onClick={() => {
                   if (category.id === "stories") {
                     navigate("/stories");
+                  } else if (category.id === "podcasts") {
+                    navigate("/podcasts");
+                  } else if (category.id === "freespace") {
+                    navigate("/free-space");
                   }
                 }}
               >

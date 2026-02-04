@@ -14,6 +14,8 @@ import FamilySettings from "./pages/FamilySettings";
 import Profile from "./pages/Profile";
 import Gems from "./pages/Gems";
 import Stories from "./pages/Stories";
+import Podcasts from "./pages/Podcasts";
+import FreeSpace from "./pages/FreeSpace";
 import EventChronicle from "./pages/EventChronicle";
 import WorkingProjects from "./pages/WorkingProjects";
 import CreateProject from "./pages/CreateProject";
@@ -44,6 +46,8 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/gems" element={<Gems />} />
             <Route path="/stories" element={<Stories />} />
+            <Route path="/podcasts" element={<Podcasts />} />
+            <Route path="/free-space" element={<FreeSpace />} />
             <Route path="/event-chronicle" element={<EventChronicle />} />
             <Route path="/working-projects" element={<WorkingProjects />} />
             <Route path="/quests" element={<Quests />} />
