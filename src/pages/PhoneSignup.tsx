@@ -14,11 +14,12 @@ import yarnHearts from "@/assets/yarn-hearts.png";
 const phoneSchema = z.string().min(10, "Please enter a valid phone number").regex(/^\+?[0-9\s-()]+$/, "Please enter a valid phone number");
 const otpSchema = z.string().length(6, "Please enter the 6-digit code");
 
-// Test credentials for development
-const TEST_PHONE = "+15555555555";
-const TEST_CODE = "123456";
-const TEST_EMAIL = "testuser@knit.app";
-const TEST_PASSWORD = "TestKnit123!";
+// Test credentials - only available in development
+const isDevelopment = import.meta.env.MODE === 'development';
+const TEST_PHONE = isDevelopment ? "+15555555555" : null;
+const TEST_CODE = isDevelopment ? "123456" : null;
+const TEST_EMAIL = isDevelopment ? "testuser@knit.app" : null;
+const TEST_PASSWORD = isDevelopment ? "TestKnit123!" : null;
 
 const PhoneSignup = () => {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ const PhoneSignup = () => {
   };
 
   const isTestPhone = (phoneNumber: string) => {
+    if (!isDevelopment || !TEST_PHONE) return false;
     const formatted = formatPhone(phoneNumber);
     return formatted === TEST_PHONE || phoneNumber.replace(/\D/g, "") === "5555555555";
   };
@@ -273,10 +275,12 @@ const PhoneSignup = () => {
                 {isSubmitting ? "Sending..." : "Next"}
               </CozyButton>
 
-              {/* Test mode hint */}
-              <p className="text-xs text-muted-foreground text-center mt-4">
-                For testing: use +15555555555
-              </p>
+              {/* Test mode hint - only in development */}
+              {isDevelopment && (
+                <p className="text-xs text-muted-foreground text-center mt-4">
+                  For testing: use +15555555555
+                </p>
+              )}
             </>
           ) : (
             <>
