@@ -11,6 +11,16 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Require admin secret for authentication
+  const authHeader = req.headers.get('Authorization');
+  const adminSecret = Deno.env.get('ADMIN_SECRET');
+  if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -187,10 +197,8 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      credentials: {
-        email: testEmail,
-        password: testPassword
-      },
+      message: 'Test user and family data created successfully',
+      userId: userId,
       familyCode: familyCode,
       familyName: 'The Thompson Family',
       familyMembers: ['Sarah Thompson (Admin)', 'Mike Thompson', 'Emma Thompson', 'Grandma Rose'],
