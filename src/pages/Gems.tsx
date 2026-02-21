@@ -21,7 +21,7 @@ import dadAvatar from "@/assets/avatars/dad.png";
 import grandpaAvatar from "@/assets/avatars/grandpa.png";
 import daughterAvatar from "@/assets/avatars/daughter.png";
 
-type ContentType = "all" | "stories" | "photos" | "podcasts" | "storybooks";
+type ContentType = "stories" | "photos" | "podcasts" | "storybooks";
 
 interface FeedItem {
   id: string;
@@ -73,13 +73,6 @@ const sampleFeed: FeedItem[] = [
   },
 ];
 
-const filterOptions: { value: ContentType; label: string; icon: string }[] = [
-  { value: "all", label: "All", icon: "✨" },
-  { value: "stories", label: "Stories", icon: "📝" },
-  { value: "photos", label: "Photos", icon: "📸" },
-  { value: "podcasts", label: "Podcasts", icon: "🎙️" },
-  { value: "storybooks", label: "Storybooks", icon: "📚" },
-];
 
 const Gems = () => {
   const navigate = useNavigate();
@@ -88,7 +81,7 @@ const Gems = () => {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [familySpaceId, setFamilySpaceId] = useState<string | null>(null);
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<ContentType>("all");
+  
   const [feed, setFeed] = useState<FeedItem[]>(sampleFeed);
   const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null);
 
@@ -163,7 +156,7 @@ const Gems = () => {
     );
   };
 
-  const filteredFeed = activeFilter === "all" ? feed : feed.filter((item) => item.type === activeFilter);
+  const filteredFeed = feed;
 
   if (loading) {
     return (
@@ -223,25 +216,6 @@ const Gems = () => {
 
       <input ref={coverInputRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
 
-      {/* Filter Chips */}
-      <div className="px-6 mb-4">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          {filterOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setActiveFilter(opt.value)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                activeFilter === opt.value
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              <span>{opt.icon}</span>
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Feed Grid */}
       <div className="px-6 pb-6">
