@@ -248,10 +248,6 @@ const Gems = () => {
                   <Heart className={`w-3 h-3 ${item.liked ? "fill-primary text-primary" : "text-muted-foreground"}`} />
                   <span className="text-[10px] text-muted-foreground pr-0.5">{item.likes}</span>
                 </button>
-                {/* Type badge */}
-                <span className="absolute bottom-1.5 left-1.5 text-[9px] px-1.5 py-0.5 rounded-full bg-background/70 backdrop-blur-sm text-foreground capitalize font-medium">
-                  {item.type === "storybooks" ? "storybook" : item.type.slice(0, -1)}
-                </span>
               </div>
 
               {/* Content */}
