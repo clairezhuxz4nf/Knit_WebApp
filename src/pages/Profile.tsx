@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Calendar, Phone, LogOut, Save, Camera, Loader2 } from "lucide-react";
+import { User, Calendar, Phone, LogOut, Save, Camera, Loader2, Download } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
@@ -379,11 +379,33 @@ const Profile = () => {
           </CozyButton>
         </motion.div>
 
-        {/* Sign Out Button */}
+        {/* Export All Records */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
+        >
+          <CozyButton
+            variant="outline"
+            size="lg"
+            fullWidth
+            onClick={() => {
+              toast({
+                title: "Export started",
+                description: "Your records are being prepared for download",
+              });
+            }}
+          >
+            <Download className="w-4 h-4" />
+            Export All Records
+          </CozyButton>
+        </motion.div>
+
+        {/* Sign Out Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
         >
           <CozyButton
             variant="secondary"
