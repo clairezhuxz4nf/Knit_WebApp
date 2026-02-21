@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, Camera, ImagePlus, Loader2, Filter } from "lucide-react";
+import { Heart, Camera, ImagePlus, Loader2 } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import BottomNav from "@/components/layout/BottomNav";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,11 @@ import { toast } from "sonner";
 
 // Import avatar images for sample data
 import grandmaAvatar from "@/assets/avatars/grandma.png";
+
+// Import family photos
+import familyDinner from "@/assets/family/family-dinner.jpg";
+import mountains from "@/assets/family/mountains.jpg";
+import grandparentsPhoto from "@/assets/family/grandparents.jpg";
 import momAvatar from "@/assets/avatars/mom.png";
 import dadAvatar from "@/assets/avatars/dad.png";
 import grandpaAvatar from "@/assets/avatars/grandpa.png";
@@ -31,74 +36,39 @@ interface FeedItem {
 
 const sampleFeed: FeedItem[] = [
   {
-    id: "s1",
-    type: "stories",
-    title: "Learning to Read",
-    description: "Grandma was illiterate until she worked at a bookstore. She self-studied the dictionary and published her first poem at 50.",
-    personName: "Grandma",
-    avatarUrl: grandmaAvatar,
-    likes: 4,
-    liked: false,
+    id: "s1", type: "stories", title: "Learning to Read",
+    description: "Grandma self-studied the dictionary and published her first poem at 50.",
+    imageUrl: grandparentsPhoto, personName: "Grandma", avatarUrl: grandmaAvatar, likes: 4, liked: false,
   },
   {
-    id: "p1",
-    type: "podcasts",
-    title: "Sunday Dumplings",
-    description: "Dad shares the story behind his secret dumpling recipe — a tradition passed down from his grandmother with a twist of ginger.",
-    personName: "Dad",
-    avatarUrl: dadAvatar,
-    likes: 7,
-    liked: true,
+    id: "p1", type: "podcasts", title: "Sunday Dumplings",
+    description: "Dad shares his secret dumpling recipe passed down from his grandmother.",
+    imageUrl: familyDinner, personName: "Dad", avatarUrl: dadAvatar, likes: 7, liked: true,
   },
   {
-    id: "s2",
-    type: "stories",
-    title: "The Radio Engineer",
-    description: "Grandpa built his first radio from scratch at 14, saving coins for months. That radio still sits on his shelf today.",
-    personName: "Grandpa",
-    avatarUrl: grandpaAvatar,
-    likes: 3,
-    liked: false,
+    id: "s2", type: "stories", title: "The Radio Engineer",
+    description: "Grandpa built his first radio at 14. It still sits on his shelf today.",
+    imageUrl: mountains, personName: "Grandpa", avatarUrl: grandpaAvatar, likes: 3, liked: false,
   },
   {
-    id: "s3",
-    type: "stories",
-    title: "Paper & Poetry",
-    description: "Grandma saved every scrap of paper to practice writing. She said words shouldn't be wasted just because paper was expensive.",
-    personName: "Grandma",
-    avatarUrl: grandmaAvatar,
-    likes: 5,
-    liked: false,
+    id: "s3", type: "stories", title: "Paper & Poetry",
+    description: "Grandma saved every scrap of paper to practice writing on at night.",
+    imageUrl: grandparentsPhoto, personName: "Grandma", avatarUrl: grandmaAvatar, likes: 5, liked: false,
   },
   {
-    id: "p2",
-    type: "podcasts",
-    title: "Small Town Dreams",
-    description: "Mom and Dad never went to college but built a business from nothing. This episode tells the story of leaving their small town.",
-    personName: "Mom",
-    avatarUrl: momAvatar,
-    likes: 9,
-    liked: true,
+    id: "p2", type: "podcasts", title: "Small Town Dreams",
+    description: "Mom and Dad built a business from nothing to leave their small town.",
+    imageUrl: mountains, personName: "Mom", avatarUrl: momAvatar, likes: 9, liked: true,
   },
   {
-    id: "s4",
-    type: "stories",
-    title: "First Piano Recital",
-    description: "Mom held my hands and said 'The notes already know where to go.' I played without a mistake that day.",
-    personName: "Me",
-    avatarUrl: daughterAvatar,
-    likes: 6,
-    liked: false,
+    id: "s4", type: "stories", title: "First Piano Recital",
+    description: "Mom said 'The notes already know where to go.' I played perfectly.",
+    imageUrl: familyDinner, personName: "Me", avatarUrl: daughterAvatar, likes: 6, liked: false,
   },
   {
-    id: "sb1",
-    type: "storybooks",
-    title: "Our Family Recipes",
-    description: "A compiled collection of recipes passed down through generations — from grandma's noodle soup to dad's famous dumplings.",
-    personName: "Family",
-    avatarUrl: momAvatar,
-    likes: 12,
-    liked: true,
+    id: "sb1", type: "storybooks", title: "Our Family Recipes",
+    description: "A collection of recipes from grandma's noodle soup to dad's dumplings.",
+    imageUrl: familyDinner, personName: "Family", avatarUrl: momAvatar, likes: 12, liked: true,
   },
 ];
 
@@ -271,50 +241,54 @@ const Gems = () => {
         </div>
       </div>
 
-      {/* Feed */}
-      <div className="px-6 pb-6 space-y-5">
-        {filteredFeed.map((item, index) => (
-          <motion.div
-            key={item.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.07 }}
-            className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-soft"
-          >
-            {/* Card image area — placeholder gradient */}
-            <div className="aspect-[16/10] bg-gradient-to-br from-yarn-rose/30 via-yarn-butter/20 to-yarn-sage/30 flex items-center justify-center">
-              <span className="text-5xl">
-                {item.type === "stories" ? "📝" : item.type === "podcasts" ? "🎙️" : item.type === "storybooks" ? "📚" : "📸"}
-              </span>
-            </div>
-
-            {/* Content */}
-            <div className="p-4">
-              <div className="flex items-start justify-between gap-2 mb-1.5">
-                <div className="flex items-center gap-2">
-                  <img src={item.avatarUrl} alt={item.personName} className="w-6 h-6 rounded-full object-cover border border-border" />
-                  <span className="text-xs text-muted-foreground font-medium">{item.personName}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
-                    {item.type === "storybooks" ? "storybook" : item.type.slice(0, -1)}
-                  </span>
-                </div>
+      {/* Feed Grid */}
+      <div className="px-6 pb-6">
+        <div className="grid grid-cols-2 gap-3">
+          {filteredFeed.map((item, index) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-soft"
+            >
+              {/* Card image */}
+              <div className="aspect-square relative">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-yarn-rose/30 via-yarn-butter/20 to-yarn-sage/30 flex items-center justify-center">
+                    <span className="text-3xl">
+                      {item.type === "stories" ? "📝" : item.type === "podcasts" ? "🎙️" : item.type === "storybooks" ? "📚" : "📸"}
+                    </span>
+                  </div>
+                )}
+                {/* Like button overlay */}
                 <button
-                  onClick={() => toggleLike(item.id)}
-                  className="flex items-center gap-1 group/like"
+                  onClick={(e) => { e.stopPropagation(); toggleLike(item.id); }}
+                  className="absolute top-1.5 right-1.5 bg-background/70 backdrop-blur-sm rounded-full p-1 flex items-center gap-0.5"
                 >
-                  <Heart
-                    className={`w-4 h-4 transition-colors ${
-                      item.liked ? "fill-primary text-primary" : "text-muted-foreground group-hover/like:text-primary"
-                    }`}
-                  />
-                  <span className="text-xs text-muted-foreground">{item.likes}</span>
+                  <Heart className={`w-3 h-3 ${item.liked ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+                  <span className="text-[10px] text-muted-foreground pr-0.5">{item.likes}</span>
                 </button>
+                {/* Type badge */}
+                <span className="absolute bottom-1.5 left-1.5 text-[9px] px-1.5 py-0.5 rounded-full bg-background/70 backdrop-blur-sm text-foreground capitalize font-medium">
+                  {item.type === "storybooks" ? "storybook" : item.type.slice(0, -1)}
+                </span>
               </div>
-              <h3 className="font-display font-semibold text-sm text-foreground mb-1">{item.title}</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{item.description}</p>
-            </div>
-          </motion.div>
-        ))}
+
+              {/* Content */}
+              <div className="p-2.5">
+                <h3 className="font-display font-semibold text-xs text-foreground line-clamp-1">{item.title}</h3>
+                <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 mt-0.5">{item.description}</p>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <img src={item.avatarUrl} alt={item.personName} className="w-4 h-4 rounded-full object-cover border border-border" />
+                  <span className="text-[10px] text-muted-foreground">{item.personName}</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
 
         {filteredFeed.length === 0 && (
           <div className="text-center py-12">
