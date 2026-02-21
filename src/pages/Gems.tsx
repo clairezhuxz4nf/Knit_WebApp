@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, Camera, ImagePlus, Loader2 } from "lucide-react";
+import GemDetailModal from "@/components/gems/GemDetailModal";
 import MobileLayout from "@/components/layout/MobileLayout";
 import BottomNav from "@/components/layout/BottomNav";
 import { useAuth } from "@/contexts/AuthContext";
@@ -89,6 +90,7 @@ const Gems = () => {
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<ContentType>("all");
   const [feed, setFeed] = useState<FeedItem[]>(sampleFeed);
+  const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -250,7 +252,8 @@ const Gems = () => {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-soft"
+              onClick={() => setSelectedItem(item)}
+              className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-soft cursor-pointer active:scale-[0.97] transition-transform"
             >
               {/* Card image */}
               <div className="aspect-square relative">
@@ -296,6 +299,19 @@ const Gems = () => {
           </div>
         )}
       </div>
+
+      {selectedItem && (
+        <GemDetailModal
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onToggleLike={(id) => {
+            toggleLike(id);
+            setSelectedItem((prev) =>
+              prev ? { ...prev, liked: !prev.liked, likes: prev.liked ? prev.likes - 1 : prev.likes + 1 } : null
+            );
+          }}
+        />
+      )}
 
       <BottomNav />
     </MobileLayout>
