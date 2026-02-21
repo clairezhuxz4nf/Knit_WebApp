@@ -263,7 +263,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike }: GemDetailProps) => {
         </div>
 
         {/* Comment input bar */}
-        <div className="absolute bottom-0 left-0 right-0 max-w-md mx-auto bg-background border-t border-border px-4 py-2.5 flex items-center gap-2">
+        <div className="absolute bottom-16 left-0 right-0 max-w-md mx-auto bg-background border-t border-border px-4 py-2.5 flex items-center gap-2">
           <input
             ref={inputRef}
             value={newComment}
