@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle } from "lucide-react";
+import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Comment {
   id: string;
@@ -91,6 +91,36 @@ const GemDetailModal = ({ item, onClose, onToggleLike }: GemDetailProps) => {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Media overlay state
+  const [showAudioBar, setShowAudioBar] = useState(false);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [photos, setPhotos] = useState<string[]>(item.imageUrl ? [item.imageUrl] : []);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const audioDuration = 185; // mock 3:05
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+  const handleAudioSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setAudioProgress(pct * audioDuration);
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newUrls = Array.from(files).map((f) => URL.createObjectURL(f));
+    setPhotos((prev) => [...prev, ...newUrls]);
+  };
+
+  const handleSwipe = (dir: "left" | "right") => {
+    if (dir === "left" && currentPhotoIndex < photos.length - 1) setCurrentPhotoIndex((i) => i + 1);
+    if (dir === "right" && currentPhotoIndex > 0) setCurrentPhotoIndex((i) => i - 1);
+  };
+
   const handleSendComment = () => {
     if (!newComment.trim()) return;
     setComments((prev) => [
@@ -166,20 +196,86 @@ const GemDetailModal = ({ item, onClose, onToggleLike }: GemDetailProps) => {
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
-          {/* Picture — compact */}
-          <div className="relative aspect-[16/9] bg-muted">
-            {item.imageUrl ? (
-              <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                <span className="text-3xl">
-                  {item.type === "stories" ? "📝" : item.type === "podcasts" ? "🎙️" : item.type === "storybooks" ? "📚" : "📸"}
-                </span>
+          {/* Picture with overlay icons */}
+          <div className="relative">
+            <div
+              className="relative aspect-[16/9] bg-muted overflow-hidden"
+              onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+              onTouchEnd={(e) => {
+                if (touchStartX === null || photos.length <= 1) return;
+                const diff = e.changedTouches[0].clientX - touchStartX;
+                if (Math.abs(diff) > 50) handleSwipe(diff < 0 ? "left" : "right");
+                setTouchStartX(null);
+              }}
+            >
+              {photos.length > 0 ? (
+                <img src={photos[currentPhotoIndex]} alt={item.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  <span className="text-3xl">
+                    {item.type === "stories" ? "📝" : item.type === "podcasts" ? "🎙️" : item.type === "storybooks" ? "📚" : "📸"}
+                  </span>
+                </div>
+              )}
+
+              {/* Carousel arrows */}
+              {photos.length > 1 && currentPhotoIndex > 0 && (
+                <button onClick={() => handleSwipe("right")} className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/70 backdrop-blur-sm rounded-full p-1 hover:bg-background/90 transition-colors">
+                  <ChevronLeft className="w-4 h-4 text-foreground" />
+                </button>
+              )}
+              {photos.length > 1 && currentPhotoIndex < photos.length - 1 && (
+                <button onClick={() => handleSwipe("left")} className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/70 backdrop-blur-sm rounded-full p-1 hover:bg-background/90 transition-colors">
+                  <ChevronRight className="w-4 h-4 text-foreground" />
+                </button>
+              )}
+
+              {/* Dot indicators */}
+              {photos.length > 1 && (
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  {photos.map((_, i) => (
+                    <div key={i} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === currentPhotoIndex ? "bg-primary-foreground" : "bg-primary-foreground/40"}`} />
+                  ))}
+                </div>
+              )}
+
+              {/* Three overlay icons — bottom right */}
+              <div className="absolute bottom-2 right-2 flex gap-1.5">
+                <button
+                  onClick={() => setShowAudioBar(!showAudioBar)}
+                  className={`p-1.5 rounded-full backdrop-blur-sm transition-colors ${showAudioBar ? "bg-primary text-primary-foreground" : "bg-background/70 hover:bg-background/90 text-foreground"}`}
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-background/70 backdrop-blur-sm rounded-full p-1.5 hover:bg-background/90 transition-colors text-foreground"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+                <button className="bg-background/70 backdrop-blur-sm rounded-full p-1.5 hover:bg-background/90 transition-colors text-foreground">
+                  <BookOpen className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoSelect} />
+            </div>
+
+            {/* Audio bar */}
+            {showAudioBar && (
+              <div className="bg-muted px-3 py-2 flex items-center gap-2">
+                <button onClick={() => setAudioPlaying(!audioPlaying)} className="shrink-0 text-foreground">
+                  {audioPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </button>
+                <span className="text-[10px] text-muted-foreground w-8 text-right shrink-0">{formatTime(audioProgress)}</span>
+                <div className="flex-1 h-6 flex items-center cursor-pointer group" onClick={handleAudioSeek}>
+                  <div className="w-full h-1 bg-border rounded-full relative">
+                    <div className="absolute inset-y-0 left-0 bg-primary rounded-full" style={{ width: `${(audioProgress / audioDuration) * 100}%` }} />
+                    <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-primary rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity" style={{ left: `calc(${(audioProgress / audioDuration) * 100}% - 5px)` }} />
+                  </div>
+                </div>
+                <span className="text-[10px] text-muted-foreground w-8 shrink-0">{formatTime(audioDuration)}</span>
               </div>
             )}
-            <div className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm rounded-full p-1.5 cursor-pointer hover:bg-background/90 transition-colors">
-              <Camera className="w-3.5 h-3.5 text-foreground" />
-            </div>
           </div>
 
           {/* Author */}
