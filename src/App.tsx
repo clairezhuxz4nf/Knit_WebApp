@@ -21,7 +21,7 @@ import WorkingProjects from "./pages/WorkingProjects";
 import CreateProject from "./pages/CreateProject";
 import ProjectPage from "./pages/Project";
 import Family from "./pages/Family";
-import Quests from "./pages/Quests";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,7 +50,7 @@ const App = () => (
             <Route path="/free-space" element={<FreeSpace />} />
             <Route path="/event-chronicle" element={<EventChronicle />} />
             <Route path="/working-projects" element={<WorkingProjects />} />
-            <Route path="/quests" element={<Quests />} />
+            
             <Route path="/create-project" element={<CreateProject />} />
             <Route path="/project/:projectId" element={<ProjectPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
