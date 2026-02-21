@@ -74,6 +74,7 @@ const EventChronicle = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [eventSettings, setEventSettings] = useState<EventSettings>(DEFAULT_SETTINGS);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -182,12 +183,12 @@ const EventChronicle = () => {
     return projects.filter((p) => p.event_id === eventId);
   };
 
-  const getUpcomingEvents = () => {
+  const getFilteredEvents = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const currentYear = today.getFullYear();
 
-    return events
+    const allProcessed = events
       .filter((event) => {
         if (eventSettings.hiddenEventIds.includes(event.id)) return false;
         if (eventSettings.hiddenCategories.includes(event.event_category)) return false;
@@ -203,14 +204,20 @@ const EventChronicle = () => {
         return {
           ...event,
           displayDate: eventDate,
-          color: CATEGORY_COLORS[event.event_category] || "teal",
+          color: CATEGORY_COLORS[event.event_category] || ("teal" as const),
+          isPast: !event.is_recurring && eventDate < today,
         };
-      })
-      .filter((event) => {
-        if (!event.is_recurring) return event.displayDate >= today;
-        return true;
-      })
+      });
+
+    const upcoming = allProcessed
+      .filter((e) => !e.isPast)
       .sort((a, b) => a.displayDate.getTime() - b.displayDate.getTime());
+
+    const past = allProcessed
+      .filter((e) => e.isPast)
+      .sort((a, b) => b.displayDate.getTime() - a.displayDate.getTime());
+
+    return { upcoming, past };
   };
 
   const formatDate = (date: Date) => {
@@ -223,7 +230,14 @@ const EventChronicle = () => {
     return Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   };
 
-  const upcomingEvents = getUpcomingEvents();
+  const getDaysAgo = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.abs(Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+  };
+
+  const { upcoming: upcomingEvents, past: pastEvents } = getFilteredEvents();
+  const displayEvents = activeTab === "upcoming" ? upcomingEvents : pastEvents;
 
   if (loading || dataLoading) {
     return (
@@ -238,20 +252,37 @@ const EventChronicle = () => {
       <Header title="Chronicle" />
 
       <div className="flex-1 px-6 py-4 overflow-y-auto pb-24">
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
           <div className="flex items-center justify-center gap-4 mb-3">
             <YarnDecoration variant="wave" color="rose" className="w-32" />
             <CozyButton variant="secondary" size="sm" onClick={() => setShowSettings(true)}>
               Manage Events
             </CozyButton>
           </div>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Upcoming milestones to celebrate together</p>
-          </div>
         </motion.div>
 
-        {/* Pending Invitations */}
-        {pendingInvitations.length > 0 && (
+        {/* Tabs */}
+        <div className="flex gap-2 mb-5">
+          {[
+            { value: "upcoming" as const, label: "Upcoming", count: upcomingEvents.length },
+            { value: "past" as const, label: "Past", count: pastEvents.length },
+          ].map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
+                activeTab === tab.value
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+
+        {/* Pending Invitations — only on upcoming tab */}
+        {activeTab === "upcoming" && pendingInvitations.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" />
@@ -293,10 +324,12 @@ const EventChronicle = () => {
         {/* Yarn Timeline */}
         <div className="relative pb-8">
           <div className="space-y-4 ml-12">
-            {upcomingEvents.map((event, index) => {
+            {displayEvents.map((event, index) => {
               const daysUntil = getDaysUntil(event.displayDate);
-              const isLast = index === upcomingEvents.length - 1;
+              const daysAgo = getDaysAgo(event.displayDate);
+              const isLast = index === displayEvents.length - 1;
               const eventProjects = getProjectsForEvent(event.id);
+              const isPast = activeTab === "past";
 
               return (
                 <motion.div
@@ -313,14 +346,16 @@ const EventChronicle = () => {
                         height: "calc(100% + 16px)",
                         borderRadius: "4px",
                         boxShadow: "0 0 4px rgba(0,0,0,0.1)",
-                        background: `repeating-linear-gradient(180deg, hsl(var(--yarn-rose)) 0px, hsl(var(--yarn-rose)) 8px, hsl(var(--yarn-butter)) 8px, hsl(var(--yarn-butter)) 16px)`,
+                        background: isPast
+                          ? `repeating-linear-gradient(180deg, hsl(var(--muted-foreground) / 0.3) 0px, hsl(var(--muted-foreground) / 0.3) 8px, hsl(var(--muted-foreground) / 0.15) 8px, hsl(var(--muted-foreground) / 0.15) 16px)`
+                          : `repeating-linear-gradient(180deg, hsl(var(--yarn-rose)) 0px, hsl(var(--yarn-rose)) 8px, hsl(var(--yarn-butter)) 8px, hsl(var(--yarn-butter)) 16px)`,
                       }}
                     />
                   )}
 
                   <div
                     className={`absolute -left-10 top-4 w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-md border-2 border-background z-10 ${
-                      event.color === "rose" ? "bg-yarn-rose" : event.color === "sage" ? "bg-yarn-sage" : event.color === "butter" ? "bg-yarn-butter" : "bg-yarn-teal"
+                      isPast ? "bg-muted" : event.color === "rose" ? "bg-yarn-rose" : event.color === "sage" ? "bg-yarn-sage" : event.color === "butter" ? "bg-yarn-butter" : "bg-yarn-teal"
                     }`}
                     style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15), inset 0 1px 2px rgba(255,255,255,0.3), inset 0 -1px 2px rgba(0,0,0,0.1)" }}
                   >
@@ -333,7 +368,7 @@ const EventChronicle = () => {
 
                   <CozyCard
                     variant="elevated"
-                    className="cursor-pointer hover:shadow-cozy transition-all group"
+                    className={`cursor-pointer hover:shadow-cozy transition-all group ${isPast ? "opacity-80" : ""}`}
                     onClick={() =>
                       navigate("/create-project", {
                         state: { event: event.title, date: event.displayDate.toISOString(), eventId: event.id, familySpaceId },
@@ -343,7 +378,7 @@ const EventChronicle = () => {
                     <div className="flex items-start gap-4">
                       <div
                         className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${
-                          event.color === "rose" ? "bg-yarn-rose/20" : event.color === "sage" ? "bg-yarn-sage/20" : event.color === "butter" ? "bg-yarn-butter/20" : "bg-yarn-teal/20"
+                          isPast ? "bg-muted" : event.color === "rose" ? "bg-yarn-rose/20" : event.color === "sage" ? "bg-yarn-sage/20" : event.color === "butter" ? "bg-yarn-butter/20" : "bg-yarn-teal/20"
                         }`}
                       >
                         {event.icon || "📅"}
@@ -353,10 +388,14 @@ const EventChronicle = () => {
                         <p className="text-xs text-muted-foreground mb-1">{formatDate(event.displayDate)}</p>
                         <span
                           className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
-                            daysUntil <= 7 ? "bg-yarn-rose/20 text-yarn-rose" : daysUntil <= 30 ? "bg-yarn-butter/20 text-yarn-taupe" : "bg-yarn-sage/20 text-yarn-sage"
+                            isPast
+                              ? "bg-muted text-muted-foreground"
+                              : daysUntil <= 7 ? "bg-yarn-rose/20 text-yarn-rose" : daysUntil <= 30 ? "bg-yarn-butter/20 text-yarn-taupe" : "bg-yarn-sage/20 text-yarn-sage"
                           }`}
                         >
-                          {daysUntil === 0 ? "Today!" : daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`}
+                          {isPast
+                            ? daysAgo === 0 ? "Today" : daysAgo === 1 ? "Yesterday" : `${daysAgo} days ago`
+                            : daysUntil === 0 ? "Today!" : daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`}
                         </span>
                       </div>
                       <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors mt-1 flex-shrink-0" />
@@ -393,13 +432,13 @@ const EventChronicle = () => {
                           </button>
                         ))}
                       </div>
-                    ) : (
+                    ) : !isPast ? (
                       <div className="mt-3 pt-2 border-t border-border/50">
                         <p className="text-xs font-medium" style={{ color: "#C08686" }}>
                           Start preparing for this event
                         </p>
                       </div>
-                    )}
+                    ) : null}
                   </CozyCard>
                 </motion.div>
               );
@@ -407,14 +446,20 @@ const EventChronicle = () => {
           </div>
         </div>
 
-        {upcomingEvents.length === 0 && (
+        {displayEvents.length === 0 && (
           <CozyCard className="text-center py-12">
             <YarnDecoration variant="ball" color="sage" className="w-16 h-16 mx-auto mb-4 opacity-50" />
-            <h3 className="font-display text-lg font-semibold text-foreground mb-2">No Events Yet</h3>
-            <p className="text-muted-foreground text-sm mb-6">Add events in the settings or add birthdays to family members</p>
-            <CozyButton variant="primary" onClick={() => setShowSettings(true)}>
-              Manage Events
-            </CozyButton>
+            <h3 className="font-display text-lg font-semibold text-foreground mb-2">
+              {activeTab === "upcoming" ? "No Upcoming Events" : "No Past Events"}
+            </h3>
+            <p className="text-muted-foreground text-sm mb-6">
+              {activeTab === "upcoming" ? "Add events in the settings or add birthdays to family members" : "Past events will appear here after they've passed"}
+            </p>
+            {activeTab === "upcoming" && (
+              <CozyButton variant="primary" onClick={() => setShowSettings(true)}>
+                Manage Events
+              </CozyButton>
+            )}
           </CozyCard>
         )}
       </div>
