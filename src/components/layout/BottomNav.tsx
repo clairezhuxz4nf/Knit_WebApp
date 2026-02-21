@@ -10,9 +10,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    path: "/family",
-    label: "Family",
-    icon: Users,
+    path: "/gems",
+    label: "Gems",
+    icon: Gem,
   },
   {
     path: "/event-chronicle",
@@ -30,9 +30,9 @@ const navItems: NavItem[] = [
     icon: Trophy,
   },
   {
-    path: "/gems",
-    label: "Gems",
-    icon: Gem,
+    path: "/family",
+    label: "Family",
+    icon: Users,
   },
   {
     path: "/profile",
