@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, Camera, ImagePlus, Loader2 } from "lucide-react";
+import { Heart, Camera, ImagePlus, Loader2, Plus } from "lucide-react";
 import GemDetailModal from "@/components/gems/GemDetailModal";
 import MobileLayout from "@/components/layout/MobileLayout";
 import BottomNav from "@/components/layout/BottomNav";
@@ -169,11 +169,18 @@ const Gems = () => {
   return (
     <MobileLayout className="pb-20">
       {/* Header */}
-      <div className="px-6 pt-6 pb-3">
+      <div className="px-6 pt-6 pb-3 flex items-start justify-between">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="font-display text-2xl font-bold text-foreground">Family Gems</h1>
           <p className="text-muted-foreground text-sm mt-1">Your precious memories and stories</p>
         </motion.div>
+        <button
+          onClick={() => navigate("/create-story-bite")}
+          className="mt-1 w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-transform shrink-0"
+          aria-label="Add story bite"
+        >
+          <Plus className="w-5 h-5 text-primary-foreground" />
+        </button>
       </div>
 
       {/* Picture of the Week */}
