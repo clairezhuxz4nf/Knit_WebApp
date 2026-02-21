@@ -41,7 +41,7 @@ const sampleComments: Comment[] = [
     audioDuration: "9\"",
     audioTranscript: "I feel so proud of my mom every time I hear this story. When I first went to Shenzhen to start my own company, this was what kept me going.",
     timestamp: "2h ago",
-    likes: 84,
+    likes: 14,
     liked: false,
   },
   {
@@ -50,7 +50,7 @@ const sampleComments: Comment[] = [
     avatarUrl: "",
     text: "One of my favorite memories. Every time I think about it, it reminds me why family is so important to all of us 💕",
     timestamp: "1h ago",
-    likes: 12,
+    likes: 8,
     liked: true,
   },
   {
@@ -59,7 +59,7 @@ const sampleComments: Comment[] = [
     avatarUrl: "",
     text: "I remember this so well! Those were beautiful days.",
     timestamp: "45m ago",
-    likes: 7,
+    likes: 3,
     liked: false,
   },
 ];
