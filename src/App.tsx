@@ -40,7 +40,7 @@ const App = () => (
             <Route path="/phone-signup" element={<PhoneSignup />} />
             <Route path="/create-family-space" element={<CreateFamilySpace />} />
             <Route path="/join-family-space" element={<JoinFamilySpace />} />
-            <Route path="/family-space" element={<Navigate to="/family" replace />} />
+            <Route path="/family-space" element={<Navigate to="/gems" replace />} />
             <Route path="/family" element={<Family />} />
             <Route path="/family-settings" element={<FamilySettings />} />
             <Route path="/profile" element={<Profile />} />
