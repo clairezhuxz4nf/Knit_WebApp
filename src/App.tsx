@@ -19,6 +19,7 @@ import FreeSpace from "./pages/FreeSpace";
 import EventChronicle from "./pages/EventChronicle";
 
 import CreateProject from "./pages/CreateProject";
+import CreateStoryBite from "./pages/CreateStoryBite";
 import ProjectPage from "./pages/Project";
 import Family from "./pages/Family";
 
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/working-projects" element={<EventChronicle />} />
             
             <Route path="/create-project" element={<CreateProject />} />
+            <Route path="/create-story-bite" element={<CreateStoryBite />} />
             <Route path="/project/:projectId" element={<ProjectPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
