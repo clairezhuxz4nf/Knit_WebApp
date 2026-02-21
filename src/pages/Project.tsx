@@ -408,7 +408,7 @@ const ProjectPage = () => {
           isOpen={showSettings}
           onClose={() => setShowSettings(false)}
           projectId={projectId}
-          onProjectDeleted={() => navigate("/working-projects")}
+          onProjectDeleted={() => navigate("/event-chronicle")}
           onProjectUpdated={(updated) => setProject(updated)}
         />
       )}

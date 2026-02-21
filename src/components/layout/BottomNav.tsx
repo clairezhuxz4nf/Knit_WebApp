@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Users, Calendar, FolderOpen, User, Gem } from "lucide-react";
+import { Users, Calendar, User, Gem } from "lucide-react";
 
 interface NavItem {
   path: string;
@@ -18,11 +18,6 @@ const navItems: NavItem[] = [
     path: "/event-chronicle",
     label: "Chronicle",
     icon: Calendar,
-  },
-  {
-    path: "/working-projects",
-    label: "Projects",
-    icon: FolderOpen,
   },
   {
     path: "/family",

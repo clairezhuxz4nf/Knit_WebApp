@@ -17,7 +17,7 @@ import Stories from "./pages/Stories";
 import Podcasts from "./pages/Podcasts";
 import FreeSpace from "./pages/FreeSpace";
 import EventChronicle from "./pages/EventChronicle";
-import WorkingProjects from "./pages/WorkingProjects";
+
 import CreateProject from "./pages/CreateProject";
 import ProjectPage from "./pages/Project";
 import Family from "./pages/Family";
@@ -49,7 +49,7 @@ const App = () => (
             <Route path="/podcasts" element={<Podcasts />} />
             <Route path="/free-space" element={<FreeSpace />} />
             <Route path="/event-chronicle" element={<EventChronicle />} />
-            <Route path="/working-projects" element={<WorkingProjects />} />
+            <Route path="/working-projects" element={<EventChronicle />} />
             
             <Route path="/create-project" element={<CreateProject />} />
             <Route path="/project/:projectId" element={<ProjectPage />} />
