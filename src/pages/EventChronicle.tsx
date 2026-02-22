@@ -310,9 +310,9 @@ const EventChronicle = () => {
                   {project ? (
                     <button
                       onClick={() => navigate(`/project/${project.id}`)}
-                      className="flex-1 text-xs font-medium text-primary px-2 py-1.5 text-right hover:bg-muted/30 transition-colors"
+                      className="flex-1 text-xs font-medium text-primary px-2 py-1.5 text-right hover:bg-primary/10 transition-colors bg-primary/5"
                     >
-                      View Project
+                      View Project →
                     </button>
                   ) : (
                     <button
@@ -321,7 +321,7 @@ const EventChronicle = () => {
                            state: { event: event.title, date: event.displayDate.toISOString(), eventId: event.eventIds[0], familySpaceId },
                         })
                       }
-                      className="flex-1 text-xs font-medium text-primary px-2 py-1.5 text-right hover:bg-muted/30 transition-colors flex items-center justify-end gap-1"
+                      className="flex-1 text-xs font-medium text-muted-foreground px-2 py-1.5 text-right hover:bg-muted/30 transition-colors flex items-center justify-end gap-1 border-dashed border-l border-border"
                     >
                       <Plus className="w-3 h-3" />
                       Start
