@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, Camera, ImagePlus, Loader2, Plus } from "lucide-react";
+import { Heart, ImagePlus, Loader2, Plus, LayoutGrid } from "lucide-react";
 import GemDetailModal from "@/components/gems/GemDetailModal";
 import MobileLayout from "@/components/layout/MobileLayout";
 import BottomNav from "@/components/layout/BottomNav";
@@ -77,8 +77,6 @@ const sampleFeed: FeedItem[] = [
 const Gems = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const coverInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingCover, setUploadingCover] = useState(false);
   const [familySpaceId, setFamilySpaceId] = useState<string | null>(null);
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   
@@ -123,28 +121,6 @@ const Gems = () => {
     fetchData();
   }, [user]);
 
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user || !familySpaceId) return;
-    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
-
-    setUploadingCover(true);
-    try {
-      const fileExt = file.name.split(".").pop();
-      const filePath = `covers/${familySpaceId}/${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from("family-gems").upload(filePath, file);
-      if (uploadError) throw uploadError;
-      await supabase.from("family_spaces").update({ cover_photo_url: filePath }).eq("id", familySpaceId);
-      const { data: signedUrlData } = await supabase.storage.from("family-gems").createSignedUrl(filePath, 3600);
-      if (signedUrlData?.signedUrl) setCoverPhotoUrl(signedUrlData.signedUrl);
-      toast.success("Photo of the week updated!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to upload photo");
-    } finally {
-      setUploadingCover(false);
-      if (coverInputRef.current) coverInputRef.current.value = "";
-    }
-  };
 
   const toggleLike = (id: string) => {
     setFeed((prev) =>
@@ -187,41 +163,31 @@ const Gems = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="px-6 mb-5">
         <h2 className="font-display text-base font-semibold text-foreground mb-2">📷 Picture of the Week</h2>
         {coverPhotoUrl ? (
-          <div
-            className="relative aspect-[16/9] rounded-2xl overflow-hidden cursor-pointer group"
-            onClick={() => coverInputRef.current?.click()}
-          >
+          <div className="relative aspect-[16/9] rounded-2xl overflow-hidden">
             <img src={coverPhotoUrl} alt="Picture of the week" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 rounded-full p-3">
-                <Camera className="w-5 h-5 text-foreground" />
-              </div>
-            </div>
-            <div className="absolute bottom-3 left-3 bg-background/90 backdrop-blur-sm rounded-full px-3 py-1">
-              <p className="text-xs font-medium text-foreground">Tap to change</p>
-            </div>
+            <button
+              onClick={() => navigate("/photo-repository")}
+              className="absolute bottom-3 right-3 bg-background/80 backdrop-blur-sm rounded-full p-2 hover:scale-105 active:scale-95 transition-transform shadow-sm"
+              aria-label="View all photos"
+            >
+              <LayoutGrid className="w-4 h-4 text-foreground" />
+            </button>
           </div>
         ) : (
           <div
             className="aspect-[16/9] rounded-2xl border-2 border-dashed border-muted-foreground/30 bg-muted/30 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => coverInputRef.current?.click()}
+            onClick={() => navigate("/photo-repository")}
           >
-            {uploadingCover ? (
-              <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            ) : (
-              <>
-                <div className="w-14 h-14 rounded-full bg-yarn-rose/20 flex items-center justify-center mb-2">
-                  <ImagePlus className="w-7 h-7 text-primary" />
-                </div>
-                <h3 className="font-display text-sm font-semibold text-foreground">Add Picture of the Week</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Upload a family highlight</p>
-              </>
-            )}
+            <div className="w-14 h-14 rounded-full bg-yarn-rose/20 flex items-center justify-center mb-2">
+              <ImagePlus className="w-7 h-7 text-primary" />
+            </div>
+            <h3 className="font-display text-sm font-semibold text-foreground">Add Picture of the Week</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Browse the photo repository</p>
           </div>
         )}
       </motion.div>
 
-      <input ref={coverInputRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+      
 
 
       {/* Feed Grid */}

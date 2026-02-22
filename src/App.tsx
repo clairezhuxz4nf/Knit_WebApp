@@ -22,6 +22,7 @@ import CreateProject from "./pages/CreateProject";
 import CreateStoryBite from "./pages/CreateStoryBite";
 import ProjectPage from "./pages/Project";
 import Family from "./pages/Family";
+import PhotoRepository from "./pages/PhotoRepository";
 
 import NotFound from "./pages/NotFound";
 
@@ -54,6 +55,7 @@ const App = () => (
             
             <Route path="/create-project" element={<CreateProject />} />
             <Route path="/create-story-bite" element={<CreateStoryBite />} />
+            <Route path="/photo-repository" element={<PhotoRepository />} />
             <Route path="/project/:projectId" element={<ProjectPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
