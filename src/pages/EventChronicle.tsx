@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronRight, Clock, Check, X, Mail } from "lucide-react";
+import { ChevronRight, Clock, Check, X, Mail, Plus } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
@@ -32,6 +32,7 @@ interface ProjectInfo {
   status: string;
   emoji: string | null;
   event_id: string | null;
+  created_at: string;
 }
 
 interface PendingInvitation {
@@ -74,6 +75,7 @@ const EventChronicle = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [eventSettings, setEventSettings] = useState<EventSettings>(DEFAULT_SETTINGS);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const currentYear = new Date().getFullYear();
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
 
   useEffect(() => {
@@ -115,7 +117,7 @@ const EventChronicle = () => {
           .eq("family_space_id", memberData.family_space_id),
         supabase
           .from("projects")
-          .select("id, title, progress, status, emoji, event_id")
+          .select("id, title, progress, status, emoji, event_id, created_at")
           .eq("family_space_id", memberData.family_space_id),
         supabase
           .from("user_event_settings")
@@ -183,10 +185,42 @@ const EventChronicle = () => {
     return projects.filter((p) => p.event_id === eventId);
   };
 
+  // Group projects by year for an event, plus generate year rows
+  const getYearRowsForEvent = (eventId: string, isUpcoming: boolean) => {
+    const eventProjects = getProjectsForEvent(eventId);
+    const projectsByYear: Record<number, ProjectInfo> = {};
+    eventProjects.forEach((p) => {
+      const year = new Date(p.created_at).getFullYear();
+      projectsByYear[year] = p;
+    });
+
+    const years: number[] = [];
+    if (isUpcoming) {
+      // Show current year first (Start), then past years descending
+      years.push(currentYear);
+      const pastYears = Object.keys(projectsByYear)
+        .map(Number)
+        .filter((y) => y < currentYear)
+        .sort((a, b) => b - a);
+      years.push(...pastYears);
+    } else {
+      // Past: show all years with projects, descending
+      const allYears = Object.keys(projectsByYear)
+        .map(Number)
+        .sort((a, b) => b - a);
+      years.push(...allYears);
+    }
+
+    return years.map((year) => ({
+      year,
+      project: projectsByYear[year] || null,
+    }));
+  };
+
   const getFilteredEvents = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const currentYear = today.getFullYear();
+    const yr = today.getFullYear();
 
     const allProcessed = events
       .filter((event) => {
@@ -197,8 +231,8 @@ const EventChronicle = () => {
       .map((event) => {
         let eventDate = new Date(event.event_date);
         if (event.is_recurring) {
-          const thisYearDate = new Date(currentYear, eventDate.getMonth(), eventDate.getDate());
-          if (thisYearDate < today) thisYearDate.setFullYear(currentYear + 1);
+          const thisYearDate = new Date(yr, eventDate.getMonth(), eventDate.getDate());
+          if (thisYearDate < today) thisYearDate.setFullYear(yr + 1);
           eventDate = thisYearDate;
         }
         return {
@@ -220,24 +254,93 @@ const EventChronicle = () => {
     return { upcoming, past };
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", { weekday: "short", month: "long", day: "numeric", year: "numeric" });
-  };
-
   const getDaysUntil = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   };
 
-  const getDaysAgo = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Math.abs(Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
-  };
-
   const { upcoming: upcomingEvents, past: pastEvents } = getFilteredEvents();
-  const displayEvents = activeTab === "upcoming" ? upcomingEvents : pastEvents;
+
+  const renderEventCard = (event: typeof upcomingEvents[0], isUpcoming: boolean, index: number) => {
+    const daysUntil = getDaysUntil(event.displayDate);
+    const yearRows = getYearRowsForEvent(event.id, isUpcoming);
+
+    return (
+      <motion.div
+        key={event.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05 }}
+      >
+        <CozyCard variant="elevated" padding="sm" className="h-full">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg">{event.icon || "📅"}</span>
+            <h3 className="font-display font-semibold text-foreground text-sm truncate flex-1">
+              {event.title}
+            </h3>
+          </div>
+          {isUpcoming && (
+            <p className="text-xs text-muted-foreground mb-2">
+              {daysUntil === 0 ? "Today!" : daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`}
+            </p>
+          )}
+
+          <div className="space-y-1.5 mt-2">
+            {yearRows.length > 0 ? (
+              yearRows.map(({ year, project }) => (
+                <div
+                  key={year}
+                  className="flex items-center gap-2 rounded-lg border border-border/60 overflow-hidden"
+                >
+                  <span className="text-xs font-medium text-muted-foreground px-2.5 py-1.5 bg-muted/50 min-w-[48px] text-center">
+                    {year}
+                  </span>
+                  {project ? (
+                    <button
+                      onClick={() => navigate(`/project/${project.id}`)}
+                      className="flex-1 text-xs font-medium text-primary px-2 py-1.5 text-right hover:bg-muted/30 transition-colors"
+                    >
+                      View Project
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        navigate("/create-project", {
+                          state: { event: event.title, date: event.displayDate.toISOString(), eventId: event.id, familySpaceId },
+                        })
+                      }
+                      className="flex-1 text-xs font-medium text-primary px-2 py-1.5 text-right hover:bg-muted/30 transition-colors flex items-center justify-end gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Start
+                    </button>
+                  )}
+                </div>
+              ))
+            ) : isUpcoming ? (
+              <button
+                onClick={() =>
+                  navigate("/create-project", {
+                    state: { event: event.title, date: event.displayDate.toISOString(), eventId: event.id, familySpaceId },
+                  })
+                }
+                className="w-full flex items-center gap-2 rounded-lg border border-border/60 overflow-hidden"
+              >
+                <span className="text-xs font-medium text-muted-foreground px-2.5 py-1.5 bg-muted/50 min-w-[48px] text-center">
+                  {currentYear}
+                </span>
+                <span className="flex-1 text-xs font-medium text-primary px-2 py-1.5 text-right flex items-center justify-end gap-1">
+                  <Plus className="w-3 h-3" />
+                  Start
+                </span>
+              </button>
+            ) : null}
+          </div>
+        </CozyCard>
+      </motion.div>
+    );
+  };
 
   if (loading || dataLoading) {
     return (
@@ -261,29 +364,9 @@ const EventChronicle = () => {
           </div>
         </motion.div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-5">
-          {[
-            { value: "upcoming" as const, label: "Upcoming", count: upcomingEvents.length },
-            { value: "past" as const, label: "Past", count: pastEvents.length },
-          ].map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
-              className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
-                activeTab === tab.value
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </div>
-
-        {/* Pending Invitations — only on upcoming tab */}
-        {activeTab === "upcoming" && pendingInvitations.length > 0 && (
-          <div className="mb-4">
+        {/* Pending Invitations */}
+        {pendingInvitations.length > 0 && (
+          <div className="mb-5">
             <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" />
               Pending Invitations ({pendingInvitations.length})
@@ -321,147 +404,58 @@ const EventChronicle = () => {
           </div>
         )}
 
-        {/* Yarn Timeline */}
-        <div className="relative pb-8">
-          <div className="space-y-4 ml-12">
-            {displayEvents.map((event, index) => {
-              const daysUntil = getDaysUntil(event.displayDate);
-              const daysAgo = getDaysAgo(event.displayDate);
-              const isLast = index === displayEvents.length - 1;
-              const eventProjects = getProjectsForEvent(event.id);
-              const isPast = activeTab === "past";
-
-              return (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.08 }}
-                  className="relative"
-                >
-                  {!isLast && (
-                    <div
-                      className="absolute -left-6 top-8 w-1"
-                      style={{
-                        height: "calc(100% + 16px)",
-                        borderRadius: "4px",
-                        boxShadow: "0 0 4px rgba(0,0,0,0.1)",
-                        background: isPast
-                          ? `repeating-linear-gradient(180deg, hsl(var(--muted-foreground) / 0.3) 0px, hsl(var(--muted-foreground) / 0.3) 8px, hsl(var(--muted-foreground) / 0.15) 8px, hsl(var(--muted-foreground) / 0.15) 16px)`
-                          : `repeating-linear-gradient(180deg, hsl(var(--yarn-rose)) 0px, hsl(var(--yarn-rose)) 8px, hsl(var(--yarn-butter)) 8px, hsl(var(--yarn-butter)) 16px)`,
-                      }}
-                    />
-                  )}
-
-                  <div
-                    className={`absolute -left-10 top-4 w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-md border-2 border-background z-10 ${
-                      isPast ? "bg-muted" : event.color === "rose" ? "bg-yarn-rose" : event.color === "sage" ? "bg-yarn-sage" : event.color === "butter" ? "bg-yarn-butter" : "bg-yarn-teal"
-                    }`}
-                    style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.15), inset 0 1px 2px rgba(255,255,255,0.3), inset 0 -1px 2px rgba(0,0,0,0.1)" }}
-                  >
-                    <div
-                      className="absolute inset-0 rounded-full opacity-30"
-                      style={{ background: "repeating-linear-gradient(45deg, transparent 0px, transparent 2px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.3) 4px)" }}
-                    />
-                    <span className="relative z-10">{event.icon || "📅"}</span>
-                  </div>
-
-                  <CozyCard
-                    variant="elevated"
-                    className={`cursor-pointer hover:shadow-cozy transition-all group ${isPast ? "opacity-80" : ""}`}
-                    onClick={() =>
-                      navigate("/create-project", {
-                        state: { event: event.title, date: event.displayDate.toISOString(), eventId: event.id, familySpaceId },
-                      })
-                    }
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${
-                          isPast ? "bg-muted" : event.color === "rose" ? "bg-yarn-rose/20" : event.color === "sage" ? "bg-yarn-sage/20" : event.color === "butter" ? "bg-yarn-butter/20" : "bg-yarn-teal/20"
-                        }`}
-                      >
-                        {event.icon || "📅"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-display font-semibold text-foreground text-base truncate">{event.title}</h3>
-                        <p className="text-xs text-muted-foreground mb-1">{formatDate(event.displayDate)}</p>
-                        <span
-                          className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
-                            isPast
-                              ? "bg-muted text-muted-foreground"
-                              : daysUntil <= 7 ? "bg-yarn-rose/20 text-yarn-rose" : daysUntil <= 30 ? "bg-yarn-butter/20 text-yarn-taupe" : "bg-yarn-sage/20 text-yarn-sage"
-                          }`}
-                        >
-                          {isPast
-                            ? daysAgo === 0 ? "Today" : daysAgo === 1 ? "Yesterday" : `${daysAgo} days ago`
-                            : daysUntil === 0 ? "Today!" : daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`}
-                        </span>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors mt-1 flex-shrink-0" />
-                    </div>
-
-                    {/* Projects under this event */}
-                    {eventProjects.length > 0 ? (
-                      <div className="mt-3 pt-2 border-t border-border/50 space-y-1.5">
-                        {eventProjects.map((proj) => (
-                          <button
-                            key={proj.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/project/${proj.id}`);
-                            }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left group/proj"
-                          >
-                            <span className="text-sm">{proj.emoji || "📁"}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-foreground truncate">{proj.title}</p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <div className="flex-1 h-1.5 bg-border rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${
-                                      event.color === "rose" ? "bg-yarn-rose" : event.color === "sage" ? "bg-yarn-sage" : event.color === "butter" ? "bg-yarn-butter" : "bg-yarn-teal"
-                                    }`}
-                                    style={{ width: `${proj.progress}%` }}
-                                  />
-                                </div>
-                                <span className="text-[10px] text-muted-foreground">{proj.progress}%</span>
-                              </div>
-                            </div>
-                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover/proj:text-primary transition-colors shrink-0" />
-                          </button>
-                        ))}
-                      </div>
-                    ) : !isPast ? (
-                      <div className="mt-3 pt-2 border-t border-border/50">
-                        <p className="text-xs font-medium" style={{ color: "#C08686" }}>
-                          Start preparing for this event
-                        </p>
-                      </div>
-                    ) : null}
-                  </CozyCard>
-                </motion.div>
-              );
-            })}
-          </div>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-5">
+          {[
+            { value: "upcoming" as const, label: "Upcoming", count: upcomingEvents.length },
+            { value: "past" as const, label: "Past", count: pastEvents.length },
+          ].map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
+                activeTab === tab.value
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
         </div>
 
-        {displayEvents.length === 0 && (
+        {/* Upcoming Events */}
+        {activeTab === "upcoming" && upcomingEvents.length > 0 && (
+          <div className="mb-6">
+            <h2 className="font-display text-lg font-bold text-foreground mb-3">Upcoming Events</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {upcomingEvents.map((event, i) => renderEventCard(event, true, i))}
+            </div>
+          </div>
+        )}
+
+        {/* Past Events */}
+        {activeTab === "past" && pastEvents.length > 0 && (
+          <div className="mb-6">
+            <h2 className="font-display text-lg font-bold text-foreground mb-3">Past Events</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {pastEvents.map((event, i) => renderEventCard(event, false, i))}
+            </div>
+          </div>
+        )}
+
+        {(upcomingEvents.length === 0 && activeTab === "upcoming") || (pastEvents.length === 0 && activeTab === "past") ? (
           <CozyCard className="text-center py-12">
             <YarnDecoration variant="ball" color="sage" className="w-16 h-16 mx-auto mb-4 opacity-50" />
-            <h3 className="font-display text-lg font-semibold text-foreground mb-2">
-              {activeTab === "upcoming" ? "No Upcoming Events" : "No Past Events"}
-            </h3>
+            <h3 className="font-display text-lg font-semibold text-foreground mb-2">No Events Yet</h3>
             <p className="text-muted-foreground text-sm mb-6">
-              {activeTab === "upcoming" ? "Add events in the settings or add birthdays to family members" : "Past events will appear here after they've passed"}
+              Add events in the settings or add birthdays to family members
             </p>
-            {activeTab === "upcoming" && (
-              <CozyButton variant="primary" onClick={() => setShowSettings(true)}>
-                Manage Events
-              </CozyButton>
-            )}
+            <CozyButton variant="primary" onClick={() => setShowSettings(true)}>
+              Manage Events
+            </CozyButton>
           </CozyCard>
-        )}
+        ) : null}
       </div>
 
       <EventSettingsModal
