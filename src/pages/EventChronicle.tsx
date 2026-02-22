@@ -76,7 +76,7 @@ const EventChronicle = () => {
   const [eventSettings, setEventSettings] = useState<EventSettings>(DEFAULT_SETTINGS);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
   const currentYear = new Date().getFullYear();
-  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  
 
   useEffect(() => {
     if (!loading && !user) {
@@ -404,47 +404,17 @@ const EventChronicle = () => {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-5">
-          {[
-            { value: "upcoming" as const, label: "Upcoming", count: upcomingEvents.length },
-            { value: "past" as const, label: "Past", count: pastEvents.length },
-          ].map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
-              className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
-                activeTab === tab.value
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </div>
-
-        {/* Upcoming Events */}
-        {activeTab === "upcoming" && upcomingEvents.length > 0 && (
+        {/* All Events Grid */}
+        {(upcomingEvents.length > 0 || pastEvents.length > 0) ? (
           <div className="mb-6">
-            <h2 className="font-display text-lg font-bold text-foreground mb-3">Upcoming Events</h2>
             <div className="grid grid-cols-2 gap-3">
-              {upcomingEvents.map((event, i) => renderEventCard(event, true, i))}
+              {[
+                ...upcomingEvents.map((e) => ({ ...e, _isUpcoming: true as const })),
+                ...pastEvents.map((e) => ({ ...e, _isUpcoming: false as const })),
+              ].map((event, i) => renderEventCard(event, event._isUpcoming, i))}
             </div>
           </div>
-        )}
-
-        {/* Past Events */}
-        {activeTab === "past" && pastEvents.length > 0 && (
-          <div className="mb-6">
-            <h2 className="font-display text-lg font-bold text-foreground mb-3">Past Events</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {pastEvents.map((event, i) => renderEventCard(event, false, i))}
-            </div>
-          </div>
-        )}
-
-        {(upcomingEvents.length === 0 && activeTab === "upcoming") || (pastEvents.length === 0 && activeTab === "past") ? (
+        ) : (
           <CozyCard className="text-center py-12">
             <YarnDecoration variant="ball" color="sage" className="w-16 h-16 mx-auto mb-4 opacity-50" />
             <h3 className="font-display text-lg font-semibold text-foreground mb-2">No Events Yet</h3>
@@ -455,7 +425,7 @@ const EventChronicle = () => {
               Manage Events
             </CozyButton>
           </CozyCard>
-        ) : null}
+        )}
       </div>
 
       <EventSettingsModal
