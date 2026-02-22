@@ -181,13 +181,12 @@ const EventChronicle = () => {
     }
   };
 
-  const getProjectsForEvent = (eventId: string) => {
-    return projects.filter((p) => p.event_id === eventId);
+  const getProjectsForEvents = (eventIds: string[]) => {
+    return projects.filter((p) => p.event_id && eventIds.includes(p.event_id));
   };
 
-  // Group projects by year for an event, plus generate year rows
-  const getYearRowsForEvent = (eventId: string, isUpcoming: boolean) => {
-    const eventProjects = getProjectsForEvent(eventId);
+  const getYearRowsForEvent = (eventIds: string[], isUpcoming: boolean) => {
+    const eventProjects = getProjectsForEvents(eventIds);
     const projectsByYear: Record<number, ProjectInfo> = {};
     eventProjects.forEach((p) => {
       const year = new Date(p.created_at).getFullYear();
@@ -196,7 +195,6 @@ const EventChronicle = () => {
 
     const years: number[] = [];
     if (isUpcoming) {
-      // Show current year first (Start), then past years descending
       years.push(currentYear);
       const pastYears = Object.keys(projectsByYear)
         .map(Number)
@@ -204,7 +202,6 @@ const EventChronicle = () => {
         .sort((a, b) => b - a);
       years.push(...pastYears);
     } else {
-      // Past: show all years with projects, descending
       const allYears = Object.keys(projectsByYear)
         .map(Number)
         .sort((a, b) => b - a);
@@ -243,11 +240,30 @@ const EventChronicle = () => {
         };
       });
 
-    const upcoming = allProcessed
+    // Deduplicate by title — merge events with the same title
+    const grouped = new Map<string, typeof allProcessed[0] & { eventIds: string[] }>();
+    for (const event of allProcessed) {
+      const existing = grouped.get(event.title);
+      if (existing) {
+        existing.eventIds.push(event.id);
+        // Keep the earliest displayDate
+        if (event.displayDate < existing.displayDate) {
+          existing.displayDate = event.displayDate;
+          existing.icon = event.icon || existing.icon;
+          existing.color = event.color;
+        }
+      } else {
+        grouped.set(event.title, { ...event, eventIds: [event.id] });
+      }
+    }
+
+    const deduped = Array.from(grouped.values());
+
+    const upcoming = deduped
       .filter((e) => !e.isPast)
       .sort((a, b) => a.displayDate.getTime() - b.displayDate.getTime());
 
-    const past = allProcessed
+    const past = deduped
       .filter((e) => e.isPast)
       .sort((a, b) => b.displayDate.getTime() - a.displayDate.getTime());
 
@@ -264,7 +280,7 @@ const EventChronicle = () => {
 
   const renderEventCard = (event: typeof upcomingEvents[0], isUpcoming: boolean, index: number) => {
     const daysUntil = getDaysUntil(event.displayDate);
-    const yearRows = getYearRowsForEvent(event.id, isUpcoming);
+    const yearRows = getYearRowsForEvent(event.eventIds, isUpcoming);
 
     return (
       <motion.div
@@ -307,7 +323,7 @@ const EventChronicle = () => {
                     <button
                       onClick={() =>
                         navigate("/create-project", {
-                          state: { event: event.title, date: event.displayDate.toISOString(), eventId: event.id, familySpaceId },
+                           state: { event: event.title, date: event.displayDate.toISOString(), eventId: event.eventIds[0], familySpaceId },
                         })
                       }
                       className="flex-1 text-xs font-medium text-primary px-2 py-1.5 text-right hover:bg-muted/30 transition-colors flex items-center justify-end gap-1"
@@ -322,7 +338,7 @@ const EventChronicle = () => {
               <button
                 onClick={() =>
                   navigate("/create-project", {
-                    state: { event: event.title, date: event.displayDate.toISOString(), eventId: event.id, familySpaceId },
+                    state: { event: event.title, date: event.displayDate.toISOString(), eventId: event.eventIds[0], familySpaceId },
                   })
                 }
                 className="w-full flex items-center gap-2 rounded-lg border border-border/60 overflow-hidden"
