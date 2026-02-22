@@ -325,14 +325,14 @@ const ProjectSettingsModal = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-foreground/50 z-50 flex items-end"
+        className="fixed inset-0 bg-foreground/50 z-50 flex items-end justify-center"
         onClick={onClose}
       >
         <motion.div
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
-          className="w-full bg-background rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto"
+          className="w-full max-w-md bg-background rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
