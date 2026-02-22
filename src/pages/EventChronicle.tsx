@@ -193,20 +193,14 @@ const EventChronicle = () => {
       projectsByYear[year] = p;
     });
 
-    const years: number[] = [];
+    // Collect all years that have projects plus the current year for upcoming
+    const projectYears = Object.keys(projectsByYear).map(Number);
+    const allYears = new Set<number>(projectYears);
     if (isUpcoming) {
-      years.push(currentYear);
-      const pastYears = Object.keys(projectsByYear)
-        .map(Number)
-        .filter((y) => y < currentYear)
-        .sort((a, b) => b - a);
-      years.push(...pastYears);
-    } else {
-      const allYears = Object.keys(projectsByYear)
-        .map(Number)
-        .sort((a, b) => b - a);
-      years.push(...allYears);
+      allYears.add(currentYear);
     }
+
+    const years = Array.from(allYears).sort((a, b) => b - a);
 
     return years.map((year) => ({
       year,
@@ -288,6 +282,7 @@ const EventChronicle = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05 }}
+        className="break-inside-avoid"
       >
         <CozyCard variant="elevated" padding="sm" className="h-full">
           <div className="flex items-center gap-2 mb-1">
@@ -434,7 +429,7 @@ const EventChronicle = () => {
               {recurringEvents.length > 0 && (
                 <div>
                   <h2 className="font-display text-lg font-bold text-foreground mb-3">Recurring Events</h2>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="columns-2 gap-3 space-y-3">
                     {recurringEvents.map((event, i) => renderEventCard(event, event._isUpcoming, i))}
                   </div>
                 </div>
@@ -442,7 +437,7 @@ const EventChronicle = () => {
               {oneTimeEvents.length > 0 && (
                 <div>
                   <h2 className="font-display text-lg font-bold text-foreground mb-3">One-Time Events</h2>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="columns-2 gap-3 space-y-3">
                     {oneTimeEvents.map((event, i) => renderEventCard(event, event._isUpcoming, i))}
                   </div>
                 </div>
