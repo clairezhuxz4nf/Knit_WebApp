@@ -284,7 +284,12 @@ const EventChronicle = () => {
         transition={{ delay: index * 0.05 }}
         className="break-inside-avoid"
       >
-        <CozyCard variant="elevated" padding="sm" className="h-full">
+        <CozyCard
+          variant="elevated"
+          padding="sm"
+          className="h-full cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => navigate(`/event/${event.eventIds[0]}`)}
+        >
           <div className="flex items-center gap-2 mb-1">
             <span className="text-lg">{event.icon || "📅"}</span>
             <h3 className="font-display font-semibold text-foreground text-sm truncate flex-1">
@@ -309,18 +314,19 @@ const EventChronicle = () => {
                   </span>
                   {project ? (
                     <button
-                      onClick={() => navigate(`/project/${project.id}`)}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/project/${project.id}`); }}
                       className="flex-1 text-xs font-medium text-primary px-2 py-1.5 text-right hover:bg-primary/10 transition-colors bg-primary/5"
                     >
                       View Project →
                     </button>
                   ) : (
                     <button
-                      onClick={() =>
+                      onClick={(e) => {
+                        e.stopPropagation();
                         navigate("/create-project", {
                            state: { event: event.title, date: event.displayDate.toISOString(), eventId: event.eventIds[0], familySpaceId },
-                        })
-                      }
+                        });
+                      }}
                       className="flex-1 text-xs font-medium text-muted-foreground px-2 py-1.5 text-right hover:bg-muted/30 transition-colors flex items-center justify-end gap-1 border-dashed border-l border-border"
                     >
                       <Plus className="w-3 h-3" />
@@ -331,11 +337,12 @@ const EventChronicle = () => {
               ))
             ) : isUpcoming ? (
               <button
-                onClick={() =>
+                onClick={(e) => {
+                  e.stopPropagation();
                   navigate("/create-project", {
                     state: { event: event.title, date: event.displayDate.toISOString(), eventId: event.eventIds[0], familySpaceId },
-                  })
-                }
+                  });
+                }}
                 className="w-full flex items-center gap-2 rounded-lg border border-border/60 overflow-hidden"
               >
                 <span className="text-xs font-medium text-muted-foreground px-2.5 py-1.5 bg-muted/50 min-w-[48px] text-center">

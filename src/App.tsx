@@ -17,6 +17,7 @@ import Stories from "./pages/Stories";
 import Podcasts from "./pages/Podcasts";
 import FreeSpace from "./pages/FreeSpace";
 import EventChronicle from "./pages/EventChronicle";
+import EventDetail from "./pages/EventDetail";
 
 import CreateProject from "./pages/CreateProject";
 import CreateStoryBite from "./pages/CreateStoryBite";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/create-story-bite" element={<CreateStoryBite />} />
             <Route path="/photo-repository" element={<PhotoRepository />} />
             <Route path="/project/:projectId" element={<ProjectPage />} />
+            <Route path="/event/:eventId" element={<EventDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
