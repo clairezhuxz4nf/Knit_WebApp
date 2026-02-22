@@ -275,7 +275,7 @@ const EventSettingsModal = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto bg-background rounded-t-3xl shadow-2xl max-w-md mx-auto"
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto bg-background rounded-t-3xl shadow-2xl max-w-md mx-auto pb-20"
           >
             {/* Header */}
             <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-4 flex items-center justify-between z-10">
