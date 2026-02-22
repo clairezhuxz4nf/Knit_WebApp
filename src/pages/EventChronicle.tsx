@@ -404,17 +404,36 @@ const EventChronicle = () => {
           </div>
         )}
 
-        {/* All Events Grid */}
-        {(upcomingEvents.length > 0 || pastEvents.length > 0) ? (
-          <div className="mb-6">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                ...upcomingEvents.map((e) => ({ ...e, _isUpcoming: true as const })),
-                ...pastEvents.map((e) => ({ ...e, _isUpcoming: false as const })),
-              ].map((event, i) => renderEventCard(event, event._isUpcoming, i))}
+        {/* Events Grid */}
+        {(() => {
+          const allEvents = [
+            ...upcomingEvents.map((e) => ({ ...e, _isUpcoming: true as const })),
+            ...pastEvents.map((e) => ({ ...e, _isUpcoming: false as const })),
+          ];
+          const recurringEvents = allEvents.filter((e) => e.is_recurring);
+          const oneTimeEvents = allEvents.filter((e) => !e.is_recurring);
+
+          return (recurringEvents.length > 0 || oneTimeEvents.length > 0) ? (
+            <div className="mb-6 space-y-6">
+              {recurringEvents.length > 0 && (
+                <div>
+                  <h2 className="font-display text-lg font-bold text-foreground mb-3">Recurring Events</h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    {recurringEvents.map((event, i) => renderEventCard(event, event._isUpcoming, i))}
+                  </div>
+                </div>
+              )}
+              {oneTimeEvents.length > 0 && (
+                <div>
+                  <h2 className="font-display text-lg font-bold text-foreground mb-3">One-Time Events</h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    {oneTimeEvents.map((event, i) => renderEventCard(event, event._isUpcoming, i))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ) : (
+          ) : null;
+        })() || (
           <CozyCard className="text-center py-12">
             <YarnDecoration variant="ball" color="sage" className="w-16 h-16 mx-auto mb-4 opacity-50" />
             <h3 className="font-display text-lg font-semibold text-foreground mb-2">No Events Yet</h3>
