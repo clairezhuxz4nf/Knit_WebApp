@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight, Trash2, Pencil, Check, ImagePlus, Upload } from "lucide-react";
+import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight, Trash2, Pencil, Check } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,7 +101,6 @@ const AudioBubble = ({ duration, isPlaying, onPlay }: { duration: string; isPlay
 );
 
 const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: GemDetailProps) => {
-  const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>(sampleComments);
   const [newComment, setNewComment] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -123,19 +121,6 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showCameraMenu, setShowCameraMenu] = useState(false);
-
-  // Listen for photos selected from repository
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const urls = (e as CustomEvent).detail?.urls as string[];
-      if (urls?.length) {
-        setPhotos((prev) => [...prev, ...urls]);
-      }
-    };
-    window.addEventListener("photos-selected-from-repo", handler);
-    return () => window.removeEventListener("photos-selected-from-repo", handler);
-  }, []);
 
   // Comic overlay state
   const [showComic, setShowComic] = useState(false);
@@ -367,39 +352,12 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
                 >
                   <Volume2 className="w-3.5 h-3.5" />
                 </button>
-                <div className="relative">
-                  <button
-                    onClick={() => setShowCameraMenu(!showCameraMenu)}
-                    className={`backdrop-blur-sm rounded-full p-1.5 transition-colors ${showCameraMenu ? "bg-primary text-primary-foreground" : "bg-background/70 hover:bg-background/90 text-foreground"}`}
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                  </button>
-                  {showCameraMenu && (
-                    <div className="absolute bottom-full right-0 mb-2 bg-card border border-border rounded-xl shadow-lg overflow-hidden w-48 z-10">
-                      <button
-                        onClick={() => {
-                          setShowCameraMenu(false);
-                          navigate("/select-photo");
-                        }}
-                        className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                      >
-                        <ImagePlus className="w-4 h-4 text-muted-foreground" />
-                        Choose from collection
-                      </button>
-                      <div className="h-px bg-border" />
-                      <button
-                        onClick={() => {
-                          setShowCameraMenu(false);
-                          fileInputRef.current?.click();
-                        }}
-                        className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                      >
-                        <Upload className="w-4 h-4 text-muted-foreground" />
-                        Upload new
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-background/70 backdrop-blur-sm rounded-full p-1.5 hover:bg-background/90 transition-colors text-foreground"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
                 <button
                   onClick={() => hasComic && setShowComic(true)}
                   className={`backdrop-blur-sm rounded-full p-1.5 transition-colors ${hasComic ? "bg-background/70 hover:bg-background/90 text-foreground" : "bg-background/40 text-muted-foreground/50 cursor-default"}`}
