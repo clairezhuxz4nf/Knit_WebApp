@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Users, Check } from "lucide-react";
+import { Users, Check } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import CozyButton from "@/components/ui/CozyButton";
@@ -42,6 +42,7 @@ const CreateProject = () => {
   const location = useLocation();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
+  // Event details removed from wizard — pre-filled from navigation state only
   const [projectName, setProjectName] = useState("");
   const [projectEmoji, setProjectEmoji] = useState("📁");
   const [eventName, setEventName] = useState("");
@@ -127,7 +128,7 @@ const CreateProject = () => {
   };
 
   const handleNext = async () => {
-    if (step < 4) {
+    if (step < 3) {
       setStep(step + 1);
     } else {
       if (!user || !familySpaceId) {
@@ -191,12 +192,10 @@ const CreateProject = () => {
   const canProceed = () => {
     switch (step) {
       case 1:
-        return projectName.trim().length > 0 && eventName.trim().length > 0;
+        return projectName.trim().length > 0 && projectType.length > 0;
       case 2:
-        return projectType.length > 0;
-      case 3:
         return true; // Members are optional
-      case 4:
+      case 3:
         return outputType.length > 0;
       default:
         return false;
@@ -215,12 +214,12 @@ const CreateProject = () => {
             className="space-y-6"
           >
             <div className="text-center mb-6">
-              <YarnDecoration variant="heart" color="rose" className="w-12 h-12 mx-auto mb-4" />
+              <YarnDecoration variant="ball" color="sage" className="w-12 h-12 mx-auto mb-4" />
               <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-                Event Details
+                Project Details
               </h2>
               <p className="text-muted-foreground text-sm">
-                What occasion is this project for?
+                Name your project and pick a type
               </p>
             </div>
 
@@ -236,49 +235,6 @@ const CreateProject = () => {
               value={projectEmoji}
               onChange={setProjectEmoji}
             />
-
-            <CozyInput
-              label="Event Name"
-              placeholder="e.g., Grandpa's 80th Birthday"
-              value={eventName}
-              onChange={(e) => setEventName(e.target.value)}
-            />
-
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-foreground/80">
-                Event Date
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="date"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-card border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                  value={eventDate}
-                  onChange={(e) => setEventDate(e.target.value)}
-                />
-              </div>
-            </div>
-          </motion.div>
-        );
-
-      case 2:
-        return (
-          <motion.div
-            key="step2"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
-          >
-            <div className="text-center mb-6">
-              <YarnDecoration variant="ball" color="sage" className="w-12 h-12 mx-auto mb-4" />
-              <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-                Project Type
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                What kind of story are you creating?
-              </p>
-            </div>
 
             <div className="space-y-3">
               {projectTypes.map((type) => (
@@ -307,10 +263,10 @@ const CreateProject = () => {
           </motion.div>
         );
 
-      case 3:
+      case 2:
         return (
           <motion.div
-            key="step3"
+            key="step2"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -384,10 +340,10 @@ const CreateProject = () => {
           </motion.div>
         );
 
-      case 4:
+      case 3:
         return (
           <motion.div
-            key="step4"
+            key="step3"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -445,7 +401,7 @@ const CreateProject = () => {
       {/* Progress */}
       <div className="px-6 py-4">
         <div className="flex gap-2">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3].map((s) => (
             <div
               key={s}
               className={`h-1.5 flex-1 rounded-full transition-all ${
@@ -455,7 +411,7 @@ const CreateProject = () => {
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          Step {step} of 4
+          Step {step} of 3
         </p>
       </div>
 
@@ -483,7 +439,7 @@ const CreateProject = () => {
             onClick={handleNext}
             disabled={!canProceed() || isSubmitting}
           >
-            {isSubmitting ? "Creating..." : step === 4 ? "Start Project" : "Continue"}
+            {isSubmitting ? "Creating..." : step === 3 ? "Start Project" : "Continue"}
           </CozyButton>
         </div>
       </div>
