@@ -15,10 +15,11 @@ const phoneSchema = z.string().min(10, "Please enter a valid phone number").rege
 const otpSchema = z.string().length(6, "Please enter the 6-digit code");
 
 // Test credentials - fallback defaults for development testing
-const TEST_PHONE = import.meta.env.VITE_TEST_PHONE || "+15555555555";
-const TEST_CODE = import.meta.env.VITE_TEST_CODE || "123456";
-const TEST_EMAIL = import.meta.env.VITE_TEST_EMAIL || "testuser@knit.app";
-const TEST_PASSWORD = import.meta.env.VITE_TEST_PASSWORD || "testpass123";
+const TEST_ACCOUNTS: Record<string, { email: string; password: string }> = {
+  "+15555555555": { email: "testuser@knit.app", password: "testpass123" },
+  "+15555555556": { email: "testuser2@knit.app", password: "testpass456" },
+};
+const TEST_CODE = "123456";
 const isDevelopment = true;
 
 const Auth = () => {
@@ -32,7 +33,7 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isTestMode, setIsTestMode] = useState(false);
-
+  const [testCredentials, setTestCredentials] = useState<{ email: string; password: string } | null>(null);
   useEffect(() => {
     if (user && !loading) {
       navigate("/family-space");
@@ -44,9 +45,9 @@ const Auth = () => {
   };
 
   const isTestPhone = (phoneNumber: string) => {
-    if (!isDevelopment || !TEST_PHONE) return false;
+    if (!isDevelopment) return false;
     const formatted = formatPhone(phoneNumber);
-    return formatted === TEST_PHONE || phoneNumber.replace(/\D/g, "") === "5555555555";
+    return !!TEST_ACCOUNTS[formatted];
   };
 
   const handleSendCode = async () => {
@@ -62,6 +63,8 @@ const Auth = () => {
     try {
       // Check if this is the test phone number
       if (isTestPhone(phone)) {
+        const formatted = formatPhone(phone);
+        setTestCredentials(TEST_ACCOUNTS[formatted]);
         setIsTestMode(true);
         setStep("verify");
         toast({
@@ -115,10 +118,10 @@ const Auth = () => {
     try {
       // Handle test mode verification
       if (isTestMode) {
-        if (otp === TEST_CODE) {
+        if (otp === TEST_CODE && testCredentials) {
           // Call edge function to ensure test user exists with correct password
           const { data: fnData, error: fnError } = await supabase.functions.invoke('test-login', {
-            body: { email: TEST_EMAIL, password: TEST_PASSWORD },
+            body: { email: testCredentials.email, password: testCredentials.password },
           });
 
           if (fnError || !fnData?.success) {
@@ -133,8 +136,8 @@ const Auth = () => {
 
           // Now sign in with the corrected password
           const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: TEST_EMAIL,
-            password: TEST_PASSWORD,
+            email: testCredentials.email,
+            password: testCredentials.password,
           });
 
           if (signInError) {
@@ -299,7 +302,7 @@ const Auth = () => {
               {/* Test mode hint - only in development */}
               {isDevelopment && (
                 <p className="text-xs text-muted-foreground text-center">
-                  For testing: use +15555555555
+                  Test: +15555555555 or +15555555556
                 </p>
               )}
 
