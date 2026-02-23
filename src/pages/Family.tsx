@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Settings, Plus, Users } from "lucide-react";
+import { Settings, Plus, Users, Shield, ShieldCheck } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import BottomNav from "@/components/layout/BottomNav";
 import CozyCard from "@/components/ui/CozyCard";
@@ -46,7 +46,8 @@ const Family = () => {
     createSelfNode,
     addRelative,
     updatePerson,
-    generateInvite
+    generateInvite,
+    refetch
   } = useFamilyTree(familySpace?.id || null);
   useEffect(() => {
     if (!authLoading && !user) {
@@ -107,6 +108,30 @@ const Family = () => {
   };
   const handleCreateSelf = async (firstName: string, lastName?: string) => {
     await createSelfNode(firstName, lastName);
+  };
+  const handleToggleAdmin = async (person: Person) => {
+    if (!familySpace) return;
+    const newAdminStatus = !person.is_admin;
+    try {
+      const { error } = await supabase
+        .from('people')
+        .update({ is_admin: newAdminStatus })
+        .eq('id', person.id);
+      if (error) throw error;
+      toast({
+        title: newAdminStatus ? 'Admin granted' : 'Admin removed',
+        description: `${person.first_name} is ${newAdminStatus ? 'now' : 'no longer'} an admin.`,
+      });
+      // Refresh to reflect change
+      await refetch();
+    } catch (error) {
+      console.error('Error toggling admin:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update admin status.',
+        variant: 'destructive',
+      });
+    }
   };
   if (authLoading || dataLoading) {
     return <MobileLayout className="flex items-center justify-center">
@@ -190,6 +215,7 @@ const Family = () => {
               {people.map((person, index) => {
             const fullName = person.last_name ? `${person.first_name} ${person.last_name}` : person.first_name;
             const isMe = person.user_id === user?.id;
+            const isCurrentUserAdmin = currentUserPerson?.is_admin === true;
             return <CozyCard key={person.id} className="py-3 cursor-pointer hover:shadow-cozy transition-all" onClick={() => handleEditPerson(person)}>
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden text-primary-foreground font-semibold ${person.status === 'active' ? index % 4 === 0 ? "bg-primary" : index % 4 === 1 ? "bg-secondary" : index % 4 === 2 ? "bg-accent text-accent-foreground" : "bg-teal text-teal-foreground" : "bg-muted text-muted-foreground"}`}>
@@ -200,14 +226,35 @@ const Family = () => {
                   }
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-foreground">
-                          {fullName}
-                          {isMe && <span className="text-primary ml-2 text-sm">(You)</span>}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-foreground">
+                            {fullName}
+                            {isMe && <span className="text-primary ml-2 text-sm">(You)</span>}
+                          </p>
+                          {person.is_admin && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-semibold">
+                              <ShieldCheck className="w-3 h-3" />
+                              Admin
+                            </span>
+                          )}
+                        </div>
                         {person.status !== 'active' && <span className={`text-xs ${person.status === 'invited' ? 'text-accent-foreground' : 'text-muted-foreground'}`}>
                             {person.status === 'invited' ? 'Invited' : 'Pending'}
                           </span>}
                       </div>
+                      {/* Admin toggle — only visible to admins, not on their own row */}
+                      {isCurrentUserAdmin && !isMe && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleAdmin(person);
+                          }}
+                          className={`p-2 rounded-full transition-colors ${person.is_admin ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary'}`}
+                          title={person.is_admin ? 'Remove admin' : 'Make admin'}
+                        >
+                          <Shield className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </CozyCard>;
           })}
