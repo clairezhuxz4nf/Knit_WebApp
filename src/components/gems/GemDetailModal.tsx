@@ -387,7 +387,13 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProp
 
           {/* Author */}
           <div className="flex items-center gap-2 px-5 pt-3 pb-1.5">
-            <img src={item.avatarUrl} alt={item.personName} className="w-6 h-6 rounded-full object-cover border border-border" />
+            <div className="w-6 h-6 rounded-full border border-border overflow-hidden bg-muted flex items-center justify-center shrink-0">
+              {item.avatarUrl ? (
+                <img src={item.avatarUrl} alt={item.personName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[10px] font-semibold text-muted-foreground">{item.personName[0]}</span>
+              )}
+            </div>
             <span className="text-xs font-medium text-muted-foreground">{item.personName}</span>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
               {item.type === "storybooks" ? "storybook" : item.type.slice(0, -1)}
