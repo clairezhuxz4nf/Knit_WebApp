@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       userId = existingUser.id;
     } else {
       // Create user
-      const displayName = email === 'testuser2@knit.app' ? 'Jordan Lee' : 'Test User';
+      const displayName = email === 'testuser2@knit.app' ? 'Priya Agrawal' : 'Test User';
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
         const { data: familySpace, error: fsError } = await supabaseAdmin
           .from('family_spaces')
           .insert({
-            name: 'The Lee Family',
+            name: 'The Agrawal Family',
             family_code: familyCode,
             created_by: userId,
           })
@@ -85,8 +85,8 @@ Deno.serve(async (req) => {
           await supabaseAdmin.from('people').insert({
             family_space_id: familySpace.id,
             user_id: userId,
-            first_name: 'Jordan',
-            last_name: 'Lee',
+            first_name: 'Priya',
+            last_name: 'Agrawal',
             is_admin: true,
             birth_date: '1990-08-20',
             status: 'active',
@@ -95,8 +95,8 @@ Deno.serve(async (req) => {
 
           // Add a couple placeholder family members
           const members = [
-            { first_name: 'Alex', last_name: 'Lee', birth_date: '1988-02-14' },
-            { first_name: 'Grandpa', last_name: 'Lee', birth_date: '1955-06-30' },
+            { first_name: 'Rohan', last_name: 'Agrawal', birth_date: '1988-02-14' },
+            { first_name: 'Dadaji', last_name: 'Agrawal', birth_date: '1955-06-30' },
           ];
           for (const m of members) {
             await supabaseAdmin.from('people').insert({
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
             event_type: 'general',
           });
 
-          console.log('Created Lee family space:', familySpace.id);
+          console.log('Created Agrawal family space:', familySpace.id);
         }
       }
     }
