@@ -14,12 +14,12 @@ import yarnHearts from "@/assets/yarn-hearts.png";
 const phoneSchema = z.string().min(10, "Please enter a valid phone number").regex(/^\+?[0-9\s-()]+$/, "Please enter a valid phone number");
 const otpSchema = z.string().length(6, "Please enter the 6-digit code");
 
-// Test credentials - loaded from environment variables only
-const TEST_PHONE = import.meta.env.VITE_TEST_PHONE || null;
-const TEST_CODE = import.meta.env.VITE_TEST_CODE || null;
-const TEST_EMAIL = import.meta.env.VITE_TEST_EMAIL || null;
-const TEST_PASSWORD = import.meta.env.VITE_TEST_PASSWORD || null;
-const isDevelopment = !!(TEST_PHONE && TEST_CODE);
+// Test credentials - fallback defaults for development testing
+const TEST_PHONE = import.meta.env.VITE_TEST_PHONE || "+15555555555";
+const TEST_CODE = import.meta.env.VITE_TEST_CODE || "123456";
+const TEST_EMAIL = import.meta.env.VITE_TEST_EMAIL || "testuser@knit.app";
+const TEST_PASSWORD = import.meta.env.VITE_TEST_PASSWORD || "testpass123";
+const isDevelopment = true;
 
 const PhoneSignup = () => {
   const navigate = useNavigate();
