@@ -235,6 +235,10 @@ const Gems = () => {
               prev ? { ...prev, liked: !prev.liked, likes: prev.liked ? prev.likes - 1 : prev.likes + 1 } : null
             );
           }}
+          onDelete={(id) => {
+            setFeed((prev) => prev.filter((item) => item.id !== id));
+            setSelectedItem(null);
+          }}
         />
       )}
 

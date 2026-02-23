@@ -1,6 +1,20 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
 
 interface Comment {
   id: string;
@@ -29,6 +43,7 @@ interface GemDetailProps {
   };
   onClose: () => void;
   onToggleLike: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 // Sample comments matching the reference style
@@ -83,7 +98,7 @@ const AudioBubble = ({ duration, isPlaying, onPlay }: { duration: string; isPlay
   </button>
 );
 
-const GemDetailModal = ({ item, onClose, onToggleLike }: GemDetailProps) => {
+const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProps) => {
   const storyFullText = `${item.description}\n\nThis is one of those memories that stays with you — the kind that shapes who you are. Every family has these moments, quiet but powerful, that echo through the generations.\n\nIt reminds us that the most meaningful stories aren't always the loudest ones. Sometimes they live in the small choices, the everyday acts of courage and love that we carry forward.`;
   const [comments, setComments] = useState<Comment[]>(sampleComments);
   const [newComment, setNewComment] = useState("");
@@ -98,6 +113,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike }: GemDetailProps) => {
   const [photos, setPhotos] = useState<string[]>(item.imageUrl ? [item.imageUrl] : []);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const audioDuration = 185; // mock 3:05
@@ -185,13 +201,51 @@ const GemDetailModal = ({ item, onClose, onToggleLike }: GemDetailProps) => {
             <X className="w-5 h-5 text-foreground" />
           </button>
           <h2 className="font-display text-sm font-semibold text-foreground truncate mx-3">Story Bite</h2>
-          <button
-            onClick={() => onToggleLike(item.id)}
-            className="flex items-center gap-1 p-1.5 rounded-full hover:bg-muted transition-colors"
-          >
-            <Heart className={`w-4 h-4 ${item.liked ? "fill-primary text-primary" : "text-muted-foreground"}`} />
-            <span className="text-xs text-muted-foreground">{item.likes}</span>
-          </button>
+          <div className="flex items-center gap-1">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="p-1.5 rounded-full hover:bg-destructive/10 transition-colors">
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this story bite?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete "{item.title}" for all family members. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={deleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={async () => {
+                      setDeleting(true);
+                      const { error } = await supabase.from("story_bites").delete().eq("id", item.id);
+                      if (error) {
+                        toast.error("Failed to delete story bite");
+                        setDeleting(false);
+                      } else {
+                        toast.success("Story bite deleted");
+                        onDelete?.(item.id);
+                        onClose();
+                      }
+                    }}
+                  >
+                    {deleting ? "Deleting…" : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <button
+              onClick={() => onToggleLike(item.id)}
+              className="flex items-center gap-1 p-1.5 rounded-full hover:bg-muted transition-colors"
+            >
+              <Heart className={`w-4 h-4 ${item.liked ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+              <span className="text-xs text-muted-foreground">{item.likes}</span>
+            </button>
+          </div>
         </div>
 
         {/* Scrollable content */}
