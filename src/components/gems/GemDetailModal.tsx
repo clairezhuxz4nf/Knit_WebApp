@@ -529,7 +529,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
           <div className="h-px bg-border mx-5" />
 
           {/* Comments */}
-          <div className="px-5 pt-3 pb-28">
+          <div className="px-5 pt-3 pb-16">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-semibold text-foreground">
                 {comments.length} Comments
@@ -591,7 +591,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
         </div>
 
         {/* Comment input bar */}
-        <div className="absolute bottom-16 left-0 right-0 max-w-md mx-auto bg-background border-t border-border px-4 py-2.5 flex items-center gap-2">
+        <div className="absolute bottom-0 left-0 right-0 max-w-md mx-auto bg-background border-t border-border px-4 py-2.5 flex items-center gap-2">
           <input
               ref={inputRef}
               value={newComment}
