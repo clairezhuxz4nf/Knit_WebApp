@@ -156,10 +156,7 @@ const CreateStoryBite = () => {
           .from("family-gems")
           .upload(filePath, imageFile);
         if (!uploadError) {
-          const { data: signedData } = await supabase.storage
-            .from("family-gems")
-            .createSignedUrl(filePath, 3600 * 24 * 365);
-          imageUrl = signedData?.signedUrl || null;
+          imageUrl = filePath;
         }
       }
 
