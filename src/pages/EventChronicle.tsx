@@ -377,7 +377,7 @@ const EventChronicle = () => {
           <div className="flex items-center justify-center gap-4 mb-3">
             <YarnDecoration variant="wave" color="rose" className="w-32" />
             <CozyButton variant="secondary" size="sm" onClick={() => setShowSettings(true)}>
-              Events Celebrated Within My Family
+              Manage Events
             </CozyButton>
           </div>
         </motion.div>
@@ -459,7 +459,7 @@ const EventChronicle = () => {
               Add events in the settings or add birthdays to family members
             </p>
             <CozyButton variant="primary" onClick={() => setShowSettings(true)}>
-              Events Celebrated Within My Family
+              Manage Events
             </CozyButton>
           </CozyCard>
         )}
