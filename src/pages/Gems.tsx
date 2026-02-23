@@ -94,7 +94,27 @@ const Gems = () => {
           // Sign image URLs for private bucket
           const feedItems: FeedItem[] = await Promise.all(storyBites.map(async (sb) => {
             let imageUrl: string | undefined;
-            if (sb.image_url) {
+
+            // First try linked photos from story_bite_photos
+            if (!imageUrl) {
+              const { data: linkedPhotos } = await supabase
+                .from("story_bite_photos")
+                .select("family_photos(file_path)")
+                .eq("story_bite_id", sb.id)
+                .order("sort_order", { ascending: true })
+                .limit(1);
+
+              const firstLinkedPath = (linkedPhotos as any)?.[0]?.family_photos?.file_path;
+              if (firstLinkedPath) {
+                const { data: signedData } = await supabase.storage
+                  .from("family-gems")
+                  .createSignedUrl(firstLinkedPath, 3600);
+                imageUrl = signedData?.signedUrl || undefined;
+              }
+            }
+
+            // Fallback to story bite's own image
+            if (!imageUrl && sb.image_url) {
               if (sb.image_url.startsWith("http")) {
                 imageUrl = sb.image_url;
               } else {
@@ -104,6 +124,7 @@ const Gems = () => {
                 imageUrl = signedData?.signedUrl || undefined;
               }
             }
+
             return {
               id: sb.id,
               type: (sb.content_type || "stories") as ContentType,
