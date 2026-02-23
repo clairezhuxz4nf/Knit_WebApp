@@ -44,6 +44,7 @@ interface GemDetailProps {
   onClose: () => void;
   onToggleLike: (id: string) => void;
   onDelete?: (id: string) => void;
+  onUpdate?: (id: string, updates: { description: string }) => void;
 }
 
 const COMIC_STORY_TITLE = "The Name That Followed Them";
@@ -99,8 +100,7 @@ const AudioBubble = ({ duration, isPlaying, onPlay }: { duration: string; isPlay
   </button>
 );
 
-const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProps) => {
-  const storyFullText = `${item.description}\n\nThis is one of those memories that stays with you — the kind that shapes who you are. Every family has these moments, quiet but powerful, that echo through the generations.\n\nIt reminds us that the most meaningful stories aren't always the loudest ones. Sometimes they live in the small choices, the everyday acts of courage and love that we carry forward.`;
+const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: GemDetailProps) => {
   const [comments, setComments] = useState<Comment[]>(sampleComments);
   const [newComment, setNewComment] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -109,7 +109,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProp
 
   // Edit state
   const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(storyFullText);
+  const [editedContent, setEditedContent] = useState(item.description);
   const [saving, setSaving] = useState(false);
 
   // Media overlay state
@@ -158,6 +158,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProp
     } else {
       toast.success("Story updated");
       setIsEditing(false);
+      onUpdate?.(item.id, { description: editedContent });
     }
     setSaving(false);
   };
