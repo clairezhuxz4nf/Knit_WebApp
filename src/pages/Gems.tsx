@@ -83,14 +83,22 @@ const Gems = () => {
           }
         }
 
-        // Fetch story bites for this family
-        const { data: storyBites } = await supabase
-          .from("story_bites")
-          .select("*")
-          .eq("family_space_id", memberData.family_space_id)
-          .order("created_at", { ascending: false });
+        // Fetch story bites and user's likes in parallel
+        const [{ data: storyBites }, { data: userLikes }] = await Promise.all([
+          supabase
+            .from("story_bites")
+            .select("*")
+            .eq("family_space_id", memberData.family_space_id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("story_bite_likes")
+            .select("story_bite_id")
+            .eq("user_id", user.id),
+        ]);
 
         if (storyBites) {
+          const likedIds = new Set((userLikes || []).map((l: any) => l.story_bite_id));
+
           // Sign image URLs for private bucket
           const feedItems: FeedItem[] = await Promise.all(storyBites.map(async (sb) => {
             let imageUrl: string | undefined;
@@ -136,7 +144,6 @@ const Gems = () => {
                 .eq("family_space_id", memberData.family_space_id)
                 .maybeSingle();
               if (personData?.avatar_url) {
-                // Sign if it's a storage path
                 if (personData.avatar_url.startsWith("http")) {
                   avatarUrl = personData.avatar_url;
                 } else {
@@ -160,7 +167,7 @@ const Gems = () => {
               personName,
               avatarUrl,
               likes: sb.likes || 0,
-              liked: false,
+              liked: likedIds.has(sb.id),
             };
           }));
           setFeed(feedItems);
@@ -173,6 +180,7 @@ const Gems = () => {
 
 
   const toggleLike = async (id: string) => {
+    if (!user) return;
     const item = feed.find((f) => f.id === id);
     if (!item) return;
     const newLiked = !item.liked;
@@ -185,13 +193,29 @@ const Gems = () => {
       )
     );
 
-    // Persist to database
-    const { error } = await supabase
-      .from("story_bites")
-      .update({ likes: newLikes })
-      .eq("id", id);
+    try {
+      if (newLiked) {
+        // Insert like row
+        const { error: likeError } = await supabase
+          .from("story_bite_likes")
+          .insert({ story_bite_id: id, user_id: user.id });
+        if (likeError) throw likeError;
+      } else {
+        // Delete like row
+        const { error: unlikeError } = await supabase
+          .from("story_bite_likes")
+          .delete()
+          .eq("story_bite_id", id)
+          .eq("user_id", user.id);
+        if (unlikeError) throw unlikeError;
+      }
 
-    if (error) {
+      // Sync the count in story_bites
+      await supabase
+        .from("story_bites")
+        .update({ likes: newLikes })
+        .eq("id", id);
+    } catch {
       // Revert on failure
       setFeed((prev) =>
         prev.map((f) =>
