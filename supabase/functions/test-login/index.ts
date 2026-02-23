@@ -148,6 +148,56 @@ Deno.serve(async (req) => {
             event_type: 'general',
           });
 
+          // Seed story bites
+          const storyBites = [
+            {
+              title: "Grandma's Seventieth",
+              description: "In July 2016, the whole family gathered at a mountain resort in Nanjing to celebrate Grandma's seventieth birthday. Though she was technically sixty-eight, someone had said a seventieth birthday should be counted two years early, and so three generations came together for a joyful reunion. What began decades earlier as a small family that had moved to Nanjing with few relatives nearby had, over time, grown into a large clan of eighteen members across six households.\n\nThat day was especially precious because all the grandchildren were present — perhaps the only time they would all stand together in one photograph. Ten years later, they are scattered across China, Japan, Ireland, and the United States, shaped by studies, work, and new lives abroad. Yet wherever they go, this moment remains — a reminder that because of their grandparents, they share a bond that distance cannot thin: family, rooted in love.",
+              person_name: 'Priya Agrawal',
+              content_type: 'stories',
+              comic_path: '/comics/grandmas-seventieth.png',
+              comic_name: 'grandmas-seventieth.png',
+            },
+            {
+              title: 'Our Beginning',
+              description: "In September 1994, as China's first long holiday approached, Mom and her coworkers planned a trip to the mountains. A mutual friend mentioned that another group was going too and offered to introduce them. On September 29, Mom met Dad at the gate of Nanjing University to coordinate the journey. A few days later, they stood together at Yellow Mountain and took their very first photo.\n\nWhat began as a simple introduction and a shared holiday became the beginning of a lifelong story. That trip led to a partnership that has now lasted more than thirty years — a reminder that sometimes, the most ordinary plans quietly change everything.",
+              person_name: 'Priya Agrawal',
+              content_type: 'stories',
+              comic_path: '/comics/our-beginning.png',
+              comic_name: 'our-beginning.png',
+            },
+            {
+              title: 'First Family Photo',
+              description: "On New Year's Day in 1997, Mom and Dad met up with old friends and wandered from Nanjing University to Gulou Park, chatting as they walked beneath a gray, damp winter sky. The air was chilly, but the mood was warm — laughter, familiar faces, and the easy comfort of friendship marking the start of a new year.\n\nThey took a photo that day, standing side by side against an old stone wall. At first glance, it looks like a picture of two people. But it was already a family of three. Their baby was quietly growing, soon to arrive and change everything. A few months later, she would be born — and that winter afternoon would become the first chapter of their life together.",
+              person_name: 'Priya Agrawal',
+              content_type: 'stories',
+              comic_path: '/comics/first-family-photo.png',
+              comic_name: 'first-family-photo.png',
+            },
+          ];
+
+          for (const bite of storyBites) {
+            const { data: sb } = await supabaseAdmin.from('story_bites').insert({
+              family_space_id: familySpace.id,
+              created_by: userId,
+              title: bite.title,
+              description: bite.description,
+              person_name: bite.person_name,
+              content_type: bite.content_type,
+            }).select().single();
+
+            if (sb) {
+              await supabaseAdmin.from('storybooks').insert({
+                story_bite_id: sb.id,
+                family_space_id: familySpace.id,
+                created_by: userId,
+                file_path: bite.comic_path,
+                file_name: bite.comic_name,
+              });
+            }
+          }
+
+          console.log('Created Agrawal family space with story bites:', familySpace.id);
           console.log('Created Agrawal family space:', familySpace.id);
         }
       }
