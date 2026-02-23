@@ -172,14 +172,34 @@ const Gems = () => {
   }, [user]);
 
 
-  const toggleLike = (id: string) => {
+  const toggleLike = async (id: string) => {
+    const item = feed.find((f) => f.id === id);
+    if (!item) return;
+    const newLiked = !item.liked;
+    const newLikes = newLiked ? item.likes + 1 : item.likes - 1;
+
+    // Optimistic update
     setFeed((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? { ...item, liked: !item.liked, likes: item.liked ? item.likes - 1 : item.likes + 1 }
-          : item
+      prev.map((f) =>
+        f.id === id ? { ...f, liked: newLiked, likes: newLikes } : f
       )
     );
+
+    // Persist to database
+    const { error } = await supabase
+      .from("story_bites")
+      .update({ likes: newLikes })
+      .eq("id", id);
+
+    if (error) {
+      // Revert on failure
+      setFeed((prev) =>
+        prev.map((f) =>
+          f.id === id ? { ...f, liked: item.liked, likes: item.likes } : f
+        )
+      );
+      toast.error("Failed to update like");
+    }
   };
 
   const filteredFeed = feed;
