@@ -5,6 +5,9 @@ import {
   X, Camera, Mic, Square, Play, Pause, Loader2, ImagePlus,
 } from "lucide-react";
 import MobileLayout from "@/components/layout/MobileLayout";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // --- Types ---
 interface TranscriptSegment {
@@ -39,7 +42,10 @@ const formatTimer = (seconds: number) => {
 
 const CreateStoryBite = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Recording state
@@ -70,6 +76,7 @@ const CreateStoryBite = () => {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImageFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => setImagePreview(ev.target?.result as string);
     reader.readAsDataURL(file);
@@ -124,9 +131,60 @@ const CreateStoryBite = () => {
     }, 2500);
   }, []);
 
-  const handleSave = () => {
-    // For now just navigate back; later will persist
-    navigate("/gems");
+  const handleSave = async () => {
+    if (!user || !aiTitle) return;
+    setSaving(true);
+
+    try {
+      // Get user's family space
+      const { data: memberData } = await supabase
+        .from("people")
+        .select("family_space_id, first_name, last_name, avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!memberData) {
+        toast.error("You must belong to a family space first");
+        setSaving(false);
+        return;
+      }
+
+      let imageUrl: string | null = null;
+      if (imageFile) {
+        const filePath = `story-bites/${memberData.family_space_id}/${Date.now()}-${imageFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("family-gems")
+          .upload(filePath, imageFile);
+        if (!uploadError) {
+          const { data: signedData } = await supabase.storage
+            .from("family-gems")
+            .createSignedUrl(filePath, 3600 * 24 * 365);
+          imageUrl = signedData?.signedUrl || null;
+        }
+      }
+
+      const personName = [memberData.first_name, memberData.last_name].filter(Boolean).join(" ");
+
+      const { error } = await supabase.from("story_bites").insert({
+        family_space_id: memberData.family_space_id,
+        created_by: user.id,
+        title: aiTitle,
+        description: aiSummary,
+        image_url: imageUrl,
+        person_name: personName,
+        avatar_url: memberData.avatar_url,
+        content_type: "stories",
+      });
+
+      if (error) throw error;
+      toast.success("Story bite saved!");
+      navigate("/gems");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save story bite");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -139,8 +197,8 @@ const CreateStoryBite = () => {
           </button>
           <h2 className="font-display text-sm font-semibold text-foreground">New Story Bite</h2>
           {recordingState === "done" ? (
-            <button onClick={handleSave} className="text-sm font-semibold text-primary">
-              Save
+            <button onClick={handleSave} disabled={saving} className="text-sm font-semibold text-primary disabled:opacity-50">
+              {saving ? "Saving…" : "Save"}
             </button>
           ) : (
             <div className="w-10" />

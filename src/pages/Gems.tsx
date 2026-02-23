@@ -9,18 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Import avatar images for sample data
-import grandmaAvatar from "@/assets/avatars/grandma.png";
-
-// Import family photos
-import familyDinner from "@/assets/family/family-dinner.jpg";
-import mountains from "@/assets/family/mountains.jpg";
-import grandparentsPhoto from "@/assets/family/grandparents.jpg";
-import momAvatar from "@/assets/avatars/mom.png";
-import dadAvatar from "@/assets/avatars/dad.png";
-import grandpaAvatar from "@/assets/avatars/grandpa.png";
-import daughterAvatar from "@/assets/avatars/daughter.png";
-
 type ContentType = "stories" | "photos" | "podcasts" | "storybooks";
 
 interface FeedItem {
@@ -35,44 +23,6 @@ interface FeedItem {
   liked: boolean;
 }
 
-const sampleFeed: FeedItem[] = [
-  {
-    id: "s1", type: "stories", title: "Learning to Read",
-    description: "Grandma self-studied the dictionary and published her first poem at 50.",
-    imageUrl: grandparentsPhoto, personName: "Grandma", avatarUrl: grandmaAvatar, likes: 4, liked: false,
-  },
-  {
-    id: "p1", type: "podcasts", title: "Sunday Dumplings",
-    description: "Dad shares his secret dumpling recipe passed down from his grandmother.",
-    imageUrl: familyDinner, personName: "Dad", avatarUrl: dadAvatar, likes: 7, liked: true,
-  },
-  {
-    id: "s2", type: "stories", title: "The Radio Engineer",
-    description: "Grandpa built his first radio at 14. It still sits on his shelf today.",
-    imageUrl: mountains, personName: "Grandpa", avatarUrl: grandpaAvatar, likes: 3, liked: false,
-  },
-  {
-    id: "s3", type: "stories", title: "Paper & Poetry",
-    description: "Grandma saved every scrap of paper to practice writing on at night.",
-    imageUrl: grandparentsPhoto, personName: "Grandma", avatarUrl: grandmaAvatar, likes: 5, liked: false,
-  },
-  {
-    id: "p2", type: "podcasts", title: "Small Town Dreams",
-    description: "Mom and Dad built a business from nothing to leave their small town.",
-    imageUrl: mountains, personName: "Mom", avatarUrl: momAvatar, likes: 9, liked: true,
-  },
-  {
-    id: "s4", type: "stories", title: "First Piano Recital",
-    description: "Mom said 'The notes already know where to go.' I played perfectly.",
-    imageUrl: familyDinner, personName: "Me", avatarUrl: daughterAvatar, likes: 6, liked: false,
-  },
-  {
-    id: "sb1", type: "storybooks", title: "Our Family Recipes",
-    description: "A collection of recipes from grandma's noodle soup to dad's dumplings.",
-    imageUrl: familyDinner, personName: "Family", avatarUrl: momAvatar, likes: 12, liked: true,
-  },
-];
-
 
 const Gems = () => {
   const navigate = useNavigate();
@@ -80,8 +30,9 @@ const Gems = () => {
   const [familySpaceId, setFamilySpaceId] = useState<string | null>(null);
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
   
-  const [feed, setFeed] = useState<FeedItem[]>(sampleFeed);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null);
+  const [loadingFeed, setLoadingFeed] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -98,6 +49,8 @@ const Gems = () => {
 
       if (memberData) {
         setFamilySpaceId(memberData.family_space_id);
+        
+        // Fetch cover photo
         const { data: spaceData } = await supabase
           .from("family_spaces")
           .select("cover_photo_url")
@@ -116,7 +69,29 @@ const Gems = () => {
             if (signedData?.signedUrl) setCoverPhotoUrl(signedData.signedUrl);
           }
         }
+
+        // Fetch story bites for this family
+        const { data: storyBites } = await supabase
+          .from("story_bites")
+          .select("*")
+          .eq("family_space_id", memberData.family_space_id)
+          .order("created_at", { ascending: false });
+
+        if (storyBites) {
+          setFeed(storyBites.map((sb) => ({
+            id: sb.id,
+            type: (sb.content_type || "stories") as ContentType,
+            title: sb.title,
+            description: sb.description || "",
+            imageUrl: sb.image_url || undefined,
+            personName: sb.person_name || "Family",
+            avatarUrl: sb.avatar_url || "",
+            likes: sb.likes || 0,
+            liked: false,
+          })));
+        }
       }
+      setLoadingFeed(false);
     };
     fetchData();
   }, [user]);
@@ -236,9 +211,16 @@ const Gems = () => {
           ))}
         </div>
 
-        {filteredFeed.length === 0 && (
+        {!loadingFeed && filteredFeed.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground text-sm">No items in this category yet</p>
+            <div className="text-3xl mb-2">✨</div>
+            <p className="text-muted-foreground text-sm">No story bites yet</p>
+            <p className="text-muted-foreground text-xs mt-1">Tap + to create your first one</p>
+          </div>
+        )}
+        {loadingFeed && (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-6 h-6 text-primary animate-spin" />
           </div>
         )}
       </div>

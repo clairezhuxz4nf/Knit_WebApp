@@ -442,6 +442,62 @@ export type Database = {
           },
         ]
       }
+      story_bites: {
+        Row: {
+          audio_url: string | null
+          avatar_url: string | null
+          content_type: string
+          created_at: string
+          created_by: string
+          description: string | null
+          family_space_id: string
+          id: string
+          image_url: string | null
+          likes: number
+          person_name: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audio_url?: string | null
+          avatar_url?: string | null
+          content_type?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          family_space_id: string
+          id?: string
+          image_url?: string | null
+          likes?: number
+          person_name?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string | null
+          avatar_url?: string | null
+          content_type?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          family_space_id?: string
+          id?: string
+          image_url?: string | null
+          likes?: number
+          person_name?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_bites_family_space_id_fkey"
+            columns: ["family_space_id"]
+            isOneToOne: false
+            referencedRelation: "family_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_event_settings: {
         Row: {
           anniversaries: Json
