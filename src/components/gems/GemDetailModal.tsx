@@ -292,7 +292,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-background flex flex-col items-center">
+        className="fixed inset-0 z-[60] bg-background flex flex-col items-center">
 
         <div className="w-full max-w-md flex flex-col h-full">
         {/* Header */}
