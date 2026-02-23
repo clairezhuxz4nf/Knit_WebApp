@@ -496,6 +496,35 @@ export type Database = {
           },
         ]
       }
+      story_bite_likes: {
+        Row: {
+          created_at: string
+          id: string
+          story_bite_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story_bite_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story_bite_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_bite_likes_story_bite_id_fkey"
+            columns: ["story_bite_id"]
+            isOneToOne: false
+            referencedRelation: "story_bites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_bite_photos: {
         Row: {
           created_at: string
