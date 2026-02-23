@@ -345,7 +345,7 @@ export type Database = {
           id: string
           progress: number
           status: string
-          title: string
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -359,7 +359,7 @@ export type Database = {
           id?: string
           progress?: number
           status?: string
-          title: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -373,7 +373,7 @@ export type Database = {
           id?: string
           progress?: number
           status?: string
-          title?: string
+          title?: string | null
           updated_at?: string
         }
         Relationships: [

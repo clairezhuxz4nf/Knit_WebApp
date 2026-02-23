@@ -6,9 +6,8 @@ import MobileLayout from "@/components/layout/MobileLayout";
 import Header from "@/components/layout/Header";
 import CozyButton from "@/components/ui/CozyButton";
 import CozyCard from "@/components/ui/CozyCard";
-import CozyInput from "@/components/ui/CozyInput";
 import YarnDecoration from "@/components/ui/YarnDecoration";
-import EmojiPicker from "@/components/ui/EmojiPicker";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -42,8 +41,6 @@ const CreateProject = () => {
   const location = useLocation();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
-  // Event details removed from wizard — pre-filled from navigation state only
-  const [projectName, setProjectName] = useState("");
   const [projectEmoji, setProjectEmoji] = useState("📁");
   const [eventName, setEventName] = useState("");
   const [eventDate, setEventDate] = useState("");
@@ -142,7 +139,6 @@ const CreateProject = () => {
         const { data: projectData, error: projectError } = await supabase
           .from("projects")
           .insert({
-            title: projectName,
             description: eventName,
             emoji: projectEmoji,
             family_space_id: familySpaceId,
@@ -192,7 +188,7 @@ const CreateProject = () => {
   const canProceed = () => {
     switch (step) {
       case 1:
-        return projectName.trim().length > 0 && projectType.length > 0;
+        return projectType.length > 0;
       case 2:
         return true; // Members are optional
       case 3:
@@ -216,25 +212,12 @@ const CreateProject = () => {
             <div className="text-center mb-6">
               <YarnDecoration variant="ball" color="sage" className="w-12 h-12 mx-auto mb-4" />
               <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-                Project Details
+                Project Type
               </h2>
               <p className="text-muted-foreground text-sm">
-                Name your project and pick a type
+                What kind of story are you creating?
               </p>
             </div>
-
-            <CozyInput
-              label="Project Name"
-              placeholder="e.g., Family CNY Memories 2026"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-            />
-
-            <EmojiPicker
-              label="Project Icon"
-              value={projectEmoji}
-              onChange={setProjectEmoji}
-            />
 
             <div className="space-y-3">
               {projectTypes.map((type) => (
