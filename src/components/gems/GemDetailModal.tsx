@@ -430,7 +430,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
                   {showCameraMenu && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setShowCameraMenu(false)} />
-                      <div className="absolute bottom-full right-0 mb-1.5 z-20 bg-card border border-border rounded-xl shadow-lg overflow-hidden min-w-[160px]">
+                      <div className="absolute bottom-full right-0 mb-1.5 z-20 bg-card border border-border rounded-xl shadow-lg overflow-hidden whitespace-nowrap">
                         <button
                           onClick={() => {
                             setShowCameraMenu(false);
