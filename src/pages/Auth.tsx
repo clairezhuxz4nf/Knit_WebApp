@@ -116,34 +116,35 @@ const Auth = () => {
       // Handle test mode verification
       if (isTestMode) {
         if (otp === TEST_CODE) {
-          // Try to sign in with test user, or create if doesn't exist
+          // Call edge function to ensure test user exists with correct password
+          const { data: fnData, error: fnError } = await supabase.functions.invoke('test-login', {
+            body: { email: TEST_EMAIL, password: TEST_PASSWORD },
+          });
+
+          if (fnError || !fnData?.success) {
+            toast({
+              variant: "destructive",
+              title: "Test login failed",
+              description: fnError?.message || fnData?.error || "Could not set up test user",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+
+          // Now sign in with the corrected password
           const { error: signInError } = await supabase.auth.signInWithPassword({
             email: TEST_EMAIL,
             password: TEST_PASSWORD,
           });
 
           if (signInError) {
-            // User might not exist, try to create
-            const { error: signUpError } = await supabase.auth.signUp({
-              email: TEST_EMAIL,
-              password: TEST_PASSWORD,
-              options: {
-                emailRedirectTo: `${window.location.origin}/`,
-                data: {
-                  display_name: "Test User",
-                },
-              },
+            toast({
+              variant: "destructive",
+              title: "Test login failed",
+              description: signInError.message,
             });
-
-            if (signUpError) {
-              toast({
-                variant: "destructive",
-                title: "Test login failed",
-                description: signUpError.message,
-              });
-              setIsSubmitting(false);
-              return;
-            }
+            setIsSubmitting(false);
+            return;
           }
 
           toast({
