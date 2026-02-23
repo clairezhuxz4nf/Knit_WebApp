@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight, Trash2, Pencil, Check } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
+import nameStoryComic from "@/assets/comics/name-story-comic.png";
 
 interface Comment {
   id: string;
@@ -46,15 +46,14 @@ interface GemDetailProps {
   onDelete?: (id: string) => void;
 }
 
-// Sample comments matching the reference style
+const COMIC_STORY_TITLE = "The Name That Followed Them";
+
 const sampleComments: Comment[] = [
   {
     id: "c1",
     personName: "Mom",
     avatarUrl: "",
-    isAudio: true,
-    audioDuration: "9\"",
-    audioTranscript: "I feel so proud of my mom every time I hear this story. When I first went to Shenzhen to start my own company, this was what kept me going.",
+    text: "This is so funny. I have tears in my eyes. I almost forget about it.",
     timestamp: "2h ago",
     likes: 14,
     liked: false,
@@ -106,6 +105,11 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProp
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Edit state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState(storyFullText);
+  const [saving, setSaving] = useState(false);
+
   // Media overlay state
   const [showAudioBar, setShowAudioBar] = useState(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
@@ -116,7 +120,11 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProp
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const audioDuration = 185; // mock 3:05
+  // Comic overlay state
+  const [showComic, setShowComic] = useState(false);
+  const hasComic = item.title === COMIC_STORY_TITLE;
+
+  const audioDuration = 185;
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
   const handleAudioSeek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -135,6 +143,21 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProp
   const handleSwipe = (dir: "left" | "right") => {
     if (dir === "left" && currentPhotoIndex < photos.length - 1) setCurrentPhotoIndex((i) => i + 1);
     if (dir === "right" && currentPhotoIndex > 0) setCurrentPhotoIndex((i) => i - 1);
+  };
+
+  const handleSaveEdit = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("story_bites")
+      .update({ description: editedContent })
+      .eq("id", item.id);
+    if (error) {
+      toast.error("Failed to save changes");
+    } else {
+      toast.success("Story updated");
+      setIsEditing(false);
+    }
+    setSaving(false);
   };
 
   const handleSendComment = () => {
@@ -185,6 +208,31 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProp
       )
     );
   };
+
+  // Comic overlay
+  if (showComic) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-background flex flex-col items-center"
+      >
+        <div className="w-full max-w-md flex flex-col h-full">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <button onClick={() => setShowComic(false)} className="p-1.5 rounded-full hover:bg-muted transition-colors">
+              <X className="w-5 h-5 text-foreground" />
+            </button>
+            <h2 className="font-display text-sm font-semibold text-foreground truncate mx-3">Storybook</h2>
+            <div className="w-8" />
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <img src={nameStoryComic} alt="The Name That Followed Them comic" className="w-full" />
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <AnimatePresence>
@@ -307,7 +355,10 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProp
                 >
                   <Camera className="w-3.5 h-3.5" />
                 </button>
-                <button className="bg-background/70 backdrop-blur-sm rounded-full p-1.5 hover:bg-background/90 transition-colors text-foreground">
+                <button
+                  onClick={() => hasComic && setShowComic(true)}
+                  className={`backdrop-blur-sm rounded-full p-1.5 transition-colors ${hasComic ? "bg-background/70 hover:bg-background/90 text-foreground" : "bg-background/40 text-muted-foreground/50 cursor-default"}`}
+                >
                   <BookOpen className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -341,10 +392,38 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProp
             </span>
           </div>
 
-          {/* Story content — focus area */}
+          {/* Story content */}
           <div className="px-5 pb-4">
-            <h3 className="font-display text-base font-bold text-foreground mb-2">{item.title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{storyFullText}</p>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-display text-base font-bold text-foreground">{item.title}</h3>
+              {!isEditing ? (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="p-1.5 rounded-full hover:bg-muted transition-colors"
+                  aria-label="Edit story"
+                >
+                  <Pencil className="w-4 h-4 text-muted-foreground" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={saving}
+                  className="p-1.5 rounded-full hover:bg-muted transition-colors text-primary"
+                  aria-label="Save changes"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {isEditing ? (
+              <textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                className="w-full text-sm text-foreground leading-relaxed bg-muted rounded-xl p-3 min-h-[160px] focus:outline-none focus:ring-1 focus:ring-primary/30 resize-none"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{editedContent}</p>
+            )}
           </div>
 
           {/* Divider */}
