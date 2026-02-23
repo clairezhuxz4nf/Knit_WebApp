@@ -313,7 +313,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProp
               }}
             >
               {photos.length > 0 ? (
-                <img src={photos[currentPhotoIndex]} alt={item.title} className="w-full h-full object-contain" />
+                <img src={photos[currentPhotoIndex]} alt={item.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                   <span className="text-3xl">
