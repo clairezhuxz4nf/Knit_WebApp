@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight, Trash2, Pencil, Check, Upload, ImageIcon } from "lucide-react";
+import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight, Trash2, Pencil, Check } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,7 +101,6 @@ const AudioBubble = ({ duration, isPlaying, onPlay }: { duration: string; isPlay
 );
 
 const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: GemDetailProps) => {
-  const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>(sampleComments);
   const [newComment, setNewComment] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -123,7 +121,6 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
 
   // Comic overlay state
   const [showComic, setShowComic] = useState(false);
@@ -355,39 +352,12 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
                 >
                   <Volume2 className="w-3.5 h-3.5" />
                 </button>
-                <div className="relative">
-                  <button
-                    onClick={() => setShowPhotoMenu(!showPhotoMenu)}
-                    className={`p-1.5 rounded-full backdrop-blur-sm transition-colors ${showPhotoMenu ? "bg-primary text-primary-foreground" : "bg-background/70 hover:bg-background/90 text-foreground"}`}
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                  </button>
-                  {showPhotoMenu && (
-                    <div className="absolute bottom-full right-0 mb-2 bg-card border border-border rounded-xl shadow-lg overflow-hidden w-48 z-10">
-                      <button
-                        onClick={() => {
-                          setShowPhotoMenu(false);
-                          navigate("/photo-repository");
-                        }}
-                        className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                      >
-                        <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                        Choose from repository
-                      </button>
-                      <div className="h-px bg-border" />
-                      <button
-                        onClick={() => {
-                          setShowPhotoMenu(false);
-                          fileInputRef.current?.click();
-                        }}
-                        className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                      >
-                        <Upload className="w-4 h-4 text-muted-foreground" />
-                        Upload new photo
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-background/70 backdrop-blur-sm rounded-full p-1.5 hover:bg-background/90 transition-colors text-foreground"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
                 <button
                   onClick={() => hasComic && setShowComic(true)}
                   className={`backdrop-blur-sm rounded-full p-1.5 transition-colors ${hasComic ? "bg-background/70 hover:bg-background/90 text-foreground" : "bg-background/40 text-muted-foreground/50 cursor-default"}`}
