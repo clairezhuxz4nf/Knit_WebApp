@@ -18,29 +18,13 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Allow either ADMIN_SECRET or valid Supabase anon/user JWT
+  // Require an authorization header (anon key or user JWT from supabase.functions.invoke)
   const authHeader = req.headers.get('Authorization');
-  const adminSecret = Deno.env.get('ADMIN_SECRET');
-  const isAdminAuth = adminSecret && authHeader === `Bearer ${adminSecret}`;
-  
-  // If not admin, verify it's a valid Supabase JWT (anon key or user token)
-  if (!isAdminAuth) {
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    const token = authHeader?.replace('Bearer ', '');
-    // Accept anon key or verify as user JWT
-    if (token !== supabaseAnonKey) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const checkClient = createClient(supabaseUrl, supabaseAnonKey!, {
-        global: { headers: { Authorization: authHeader! } }
-      });
-      const { error: claimsError } = await checkClient.auth.getUser(token);
-      if (claimsError) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    }
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
