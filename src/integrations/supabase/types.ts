@@ -537,6 +537,51 @@ export type Database = {
           },
         ]
       }
+      storybooks: {
+        Row: {
+          created_at: string
+          created_by: string
+          family_space_id: string
+          file_name: string
+          file_path: string
+          id: string
+          story_bite_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          family_space_id: string
+          file_name: string
+          file_path: string
+          id?: string
+          story_bite_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          family_space_id?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          story_bite_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storybooks_family_space_id_fkey"
+            columns: ["family_space_id"]
+            isOneToOne: false
+            referencedRelation: "family_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storybooks_story_bite_id_fkey"
+            columns: ["story_bite_id"]
+            isOneToOne: false
+            referencedRelation: "story_bites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_event_settings: {
         Row: {
           anniversaries: Json

@@ -129,9 +129,22 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
   // Camera menu state
   const [showCameraMenu, setShowCameraMenu] = useState(false);
 
-  // Comic overlay state
-  const [showComic, setShowComic] = useState(false);
+  // Storybook state
+  const [hasStorybook, setHasStorybook] = useState(false);
   const hasComic = item.title === COMIC_STORY_TITLE;
+
+  // Check if this story bite has a storybook
+  useEffect(() => {
+    const checkStorybook = async () => {
+      const { data } = await supabase
+        .from("storybooks")
+        .select("id")
+        .eq("story_bite_id", item.id)
+        .maybeSingle();
+      setHasStorybook(!!data || hasComic);
+    };
+    checkStorybook();
+  }, [item.id, hasComic]);
 
   // Load linked photos from junction table
   useEffect(() => {
@@ -269,30 +282,9 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
     );
   };
 
-  // Comic overlay
-  if (showComic) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-background flex flex-col items-center">
-
-        <div className="w-full max-w-md flex flex-col h-full">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <button onClick={() => setShowComic(false)} className="p-1.5 rounded-full hover:bg-muted transition-colors">
-              <X className="w-5 h-5 text-foreground" />
-            </button>
-            <h2 className="font-display text-sm font-semibold text-foreground truncate mx-3">Storybook</h2>
-            <div className="w-8" />
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            <img src={nameStoryComic} alt="The Name That Followed Them comic" className="w-full" />
-          </div>
-        </div>
-      </motion.div>);
-
-  }
+  const handleOpenStorybook = () => {
+    navigate(`/storybook-preview?storyBiteId=${item.id}`);
+  };
 
   return (
     <AnimatePresence>
@@ -457,8 +449,8 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
                     }
                 </div>
                 <button
-                    onClick={() => hasComic && setShowComic(true)}
-                    className={`backdrop-blur-sm rounded-full p-1.5 transition-colors ${hasComic ? "bg-background/70 hover:bg-background/90 text-foreground" : "bg-background/40 text-muted-foreground/50 cursor-default"}`}>
+                    onClick={() => hasStorybook && handleOpenStorybook()}
+                    className={`backdrop-blur-sm rounded-full p-1.5 transition-colors ${hasStorybook ? "bg-background/70 hover:bg-background/90 text-foreground" : "bg-background/40 text-muted-foreground/50 cursor-default"}`}>
 
                   <BookOpen className="w-3.5 h-3.5" />
                 </button>
