@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import nameStoryComic from "@/assets/comics/name-story-comic.png";
+const nameStoryComic = "/comics/name-story-comic.png";
 
 interface Comment {
   id: string;
@@ -313,7 +313,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete }: GemDetailProp
               }}
             >
               {photos.length > 0 ? (
-                <img src={photos[currentPhotoIndex]} alt={item.title} className="w-full h-full object-cover" />
+                <img src={photos[currentPhotoIndex]} alt={item.title} className="w-full h-full object-contain" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                   <span className="text-3xl">
