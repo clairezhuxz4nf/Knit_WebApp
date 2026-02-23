@@ -370,7 +370,7 @@ const EventChronicle = () => {
 
   return (
     <MobileLayout showPattern className="pb-20">
-      <Header title="Chronicle" />
+      <Header title="Family Events" />
 
       <div className="flex-1 px-6 py-4 overflow-y-auto pb-24">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
