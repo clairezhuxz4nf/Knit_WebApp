@@ -601,13 +601,6 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
                     <div className="flex items-center gap-4 mt-2">
                       <span className="text-xs text-muted-foreground">{c.timestamp}</span>
                       <button className="text-xs text-muted-foreground hover:text-foreground transition-colors">Reply</button>
-                      <button
-                        onClick={() => toggleCommentLike(c.id)}
-                        className="flex items-center gap-1 ml-auto">
-
-                        <Heart className={`w-3.5 h-3.5 ${c.liked ? "fill-primary text-primary" : "text-muted-foreground"}`} />
-                        {c.likes > 0 && <span className="text-xs text-muted-foreground">{c.likes}</span>}
-                      </button>
                     </div>
                   </div>
                 </div>
