@@ -16,7 +16,7 @@ const navItems: NavItem[] = [
   },
   {
     path: "/event-chronicle",
-    label: "Chronicle",
+    label: "Events",
     icon: Calendar,
   },
   {
