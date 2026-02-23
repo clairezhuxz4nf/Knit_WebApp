@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, ImagePlus, Loader2, Plus, LayoutGrid } from "lucide-react";
 import GemDetailModal from "@/components/gems/GemDetailModal";
@@ -26,6 +26,7 @@ interface FeedItem {
 
 const Gems = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading } = useAuth();
   const [familySpaceId, setFamilySpaceId] = useState<string | null>(null);
   const [coverPhotoUrl, setCoverPhotoUrl] = useState<string | null>(null);
@@ -33,6 +34,18 @@ const Gems = () => {
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null);
   const [loadingFeed, setLoadingFeed] = useState(true);
+
+  // Auto-open story bite from query param (e.g. returning from /select-photo)
+  useEffect(() => {
+    const openId = searchParams.get("openStoryBite");
+    if (openId && feed.length > 0 && !selectedItem) {
+      const match = feed.find((f) => f.id === openId);
+      if (match) {
+        setSelectedItem(match);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [feed, searchParams]);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
