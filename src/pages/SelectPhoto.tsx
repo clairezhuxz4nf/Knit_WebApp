@@ -108,7 +108,7 @@ const SelectPhoto = () => {
       }
 
       toast.success("Photos updated");
-      navigate(-1);
+      navigate(`/gems?openStoryBite=${storyBiteId}`, { replace: true });
     } catch (err: any) {
       toast.error(err.message || "Failed to save");
     } finally {
@@ -129,7 +129,7 @@ const SelectPhoto = () => {
       {/* Header */}
       <div className="px-6 pt-6 pb-4 flex items-center gap-3">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(`/gems?openStoryBite=${storyBiteId}`, { replace: true })}
           className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"
         >
           <ArrowLeft className="w-5 h-5 text-foreground" />
