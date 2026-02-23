@@ -442,6 +442,60 @@ export type Database = {
           },
         ]
       }
+      story_bite_comments: {
+        Row: {
+          audio_duration: string | null
+          audio_transcript: string | null
+          audio_url: string | null
+          created_at: string
+          created_by: string
+          family_space_id: string
+          id: string
+          is_audio: boolean
+          story_bite_id: string
+          text: string | null
+        }
+        Insert: {
+          audio_duration?: string | null
+          audio_transcript?: string | null
+          audio_url?: string | null
+          created_at?: string
+          created_by: string
+          family_space_id: string
+          id?: string
+          is_audio?: boolean
+          story_bite_id: string
+          text?: string | null
+        }
+        Update: {
+          audio_duration?: string | null
+          audio_transcript?: string | null
+          audio_url?: string | null
+          created_at?: string
+          created_by?: string
+          family_space_id?: string
+          id?: string
+          is_audio?: boolean
+          story_bite_id?: string
+          text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_bite_comments_family_space_id_fkey"
+            columns: ["family_space_id"]
+            isOneToOne: false
+            referencedRelation: "family_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_bite_comments_story_bite_id_fkey"
+            columns: ["story_bite_id"]
+            isOneToOne: false
+            referencedRelation: "story_bites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_bite_photos: {
         Row: {
           created_at: string

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight, Trash2, Pencil, Check, Upload, Image } from "lucide-react";
@@ -14,7 +14,9 @@ import {
   AlertDialogTrigger } from
 "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 const nameStoryComic = "/comics/name-story-comic.png";
 
 interface Comment {
@@ -50,37 +52,6 @@ interface GemDetailProps {
 
 const COMIC_STORY_TITLE = "The Name That Followed Them";
 
-const sampleComments: Comment[] = [
-{
-  id: "c1",
-  personName: "Mom",
-  avatarUrl: "",
-  isAudio: true,
-  audioDuration: "6\"",
-  audioTranscript: "This is so funny. I have tears in my eyes. I almost forget about it.",
-  timestamp: "2h ago",
-  likes: 14,
-  liked: false
-},
-{
-  id: "c2",
-  personName: "Dad",
-  avatarUrl: "",
-  text: "One of my favorite memories. Every time I think about it, it reminds me why family is so important to all of us 💕",
-  timestamp: "1h ago",
-  likes: 8,
-  liked: true
-},
-{
-  id: "c3",
-  personName: "Grandma",
-  avatarUrl: "",
-  text: "I remember this so well! Those were beautiful days.",
-  timestamp: "45m ago",
-  likes: 3,
-  liked: false
-}];
-
 
 const AudioBubble = ({ duration, isPlaying, onPlay }: {duration: string;isPlaying: boolean;onPlay: () => void;}) =>
 <button
@@ -103,7 +74,9 @@ const AudioBubble = ({ duration, isPlaying, onPlay }: {duration: string;isPlayin
 
 const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: GemDetailProps) => {
   const navigate = useNavigate();
-  const [comments, setComments] = useState<Comment[]>(sampleComments);
+  const { user } = useAuth();
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
@@ -145,6 +118,62 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
     };
     checkStorybook();
   }, [item.id, hasComic]);
+
+  // Fetch comments from database
+  const fetchComments = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("story_bite_comments")
+      .select("*")
+      .eq("story_bite_id", item.id)
+      .order("created_at", { ascending: true });
+
+    if (data) {
+      // Resolve person names from people table
+      const mapped: Comment[] = await Promise.all(data.map(async (c) => {
+        let personName = "Family";
+        let avatarUrl = "";
+        const { data: person } = await supabase
+          .from("people")
+          .select("first_name, avatar_url")
+          .eq("user_id", c.created_by)
+          .maybeSingle();
+        if (person) {
+          personName = person.first_name || "Family";
+          if (person.avatar_url) {
+            if (person.avatar_url.startsWith("http")) {
+              avatarUrl = person.avatar_url;
+            } else {
+              const { data: signed } = await supabase.storage
+                .from("avatars")
+                .createSignedUrl(person.avatar_url, 3600);
+              avatarUrl = signed?.signedUrl || "";
+            }
+          }
+        }
+        // Check if this is the current user
+        if (c.created_by === user?.id) personName = "Me";
+
+        return {
+          id: c.id,
+          personName,
+          avatarUrl,
+          text: c.text || undefined,
+          isAudio: c.is_audio,
+          audioTranscript: c.audio_transcript || undefined,
+          audioDuration: c.audio_duration || undefined,
+          timestamp: formatDistanceToNow(new Date(c.created_at), { addSuffix: true }),
+          likes: 0,
+          liked: false,
+        };
+      }));
+      setComments(mapped);
+    }
+    setLoadingComments(false);
+  }, [item.id, user?.id]);
+
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
 
   // Load linked photos from junction table
   useEffect(() => {
@@ -233,40 +262,37 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
     setSaving(false);
   };
 
-  const handleSendComment = () => {
-    if (!newComment.trim()) return;
-    setComments((prev) => [
-    ...prev,
-    {
-      id: `c${Date.now()}`,
-      personName: "Me",
-      avatarUrl: "",
-      text: newComment,
-      timestamp: "Just now",
-      likes: 0,
-      liked: false
-    }]
-    );
+  const handleSendComment = async () => {
+    if (!newComment.trim() || !user) return;
+    // We need the family_space_id from the story bite
+    const { data: sb } = await supabase
+      .from("story_bites")
+      .select("family_space_id")
+      .eq("id", item.id)
+      .single();
+    if (!sb) { toast.error("Could not find story bite"); return; }
+
+    const { error } = await supabase
+      .from("story_bite_comments")
+      .insert({
+        story_bite_id: item.id,
+        family_space_id: sb.family_space_id,
+        created_by: user.id,
+        text: newComment.trim(),
+      });
+    if (error) {
+      toast.error("Failed to send comment");
+      return;
+    }
     setNewComment("");
+    fetchComments();
   };
 
   const toggleRecording = () => {
     if (isRecording) {
       setIsRecording(false);
-      setComments((prev) => [
-      ...prev,
-      {
-        id: `c${Date.now()}`,
-        personName: "Me",
-        avatarUrl: "",
-        isAudio: true,
-        audioDuration: "5\"",
-        audioTranscript: "I feel so proud of my mom every time I hear this story. When I first went to Shenzhen to start my own company, this was what kept me going.",
-        timestamp: "Just now",
-        likes: 0,
-        liked: false
-      }]
-      );
+      // TODO: implement actual audio recording and persist to DB
+      toast.info("Audio recording not yet implemented");
     } else {
       setIsRecording(true);
     }
