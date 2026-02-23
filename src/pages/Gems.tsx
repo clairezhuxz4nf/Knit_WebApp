@@ -257,10 +257,13 @@ const Gems = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="px-6 mb-5">
         <h2 className="font-display text-base font-semibold text-foreground mb-2">📷 Picture of the Week</h2>
         {coverPhotoUrl ? (
-          <div className="relative aspect-[16/9] rounded-2xl overflow-hidden">
+          <div
+            className="relative aspect-[16/9] rounded-2xl overflow-hidden cursor-pointer"
+            onClick={() => navigate("/create-story-bite", { state: { coverPhotoUrl } })}
+          >
             <img src={coverPhotoUrl} alt="Picture of the week" className="w-full h-full object-cover" />
             <button
-              onClick={() => navigate("/photo-repository")}
+              onClick={(e) => { e.stopPropagation(); navigate("/photo-repository"); }}
               className="absolute bottom-3 right-3 bg-background/80 backdrop-blur-sm rounded-full p-2 hover:scale-105 active:scale-95 transition-transform shadow-sm"
               aria-label="View all photos"
             >
