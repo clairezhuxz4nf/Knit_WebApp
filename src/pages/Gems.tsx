@@ -125,14 +125,40 @@ const Gems = () => {
               }
             }
 
+            // Resolve avatar from people table
+            let avatarUrl = sb.avatar_url || "";
+            let personName = sb.person_name || "Family";
+            if (!avatarUrl) {
+              const { data: personData } = await supabase
+                .from("people")
+                .select("avatar_url, first_name")
+                .eq("user_id", sb.created_by)
+                .eq("family_space_id", memberData.family_space_id)
+                .maybeSingle();
+              if (personData?.avatar_url) {
+                // Sign if it's a storage path
+                if (personData.avatar_url.startsWith("http")) {
+                  avatarUrl = personData.avatar_url;
+                } else {
+                  const { data: signedAvatar } = await supabase.storage
+                    .from("avatars")
+                    .createSignedUrl(personData.avatar_url, 3600);
+                  avatarUrl = signedAvatar?.signedUrl || "";
+                }
+              }
+              if (!personName || personName === "Family") {
+                personName = personData?.first_name || "Family";
+              }
+            }
+
             return {
               id: sb.id,
               type: (sb.content_type || "stories") as ContentType,
               title: sb.title,
               description: sb.description || "",
               imageUrl,
-              personName: sb.person_name || "Family",
-              avatarUrl: sb.avatar_url || "",
+              personName,
+              avatarUrl,
               likes: sb.likes || 0,
               liked: false,
             };
@@ -252,7 +278,13 @@ const Gems = () => {
                 <h3 className="font-display font-semibold text-xs text-foreground line-clamp-1">{item.title}</h3>
                 <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 mt-0.5">{item.description}</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
-                  <img src={item.avatarUrl} alt={item.personName} className="w-4 h-4 rounded-full object-cover border border-border" />
+                  {item.avatarUrl ? (
+                    <img src={item.avatarUrl} alt={item.personName} className="w-4 h-4 rounded-full object-cover border border-border" />
+                  ) : (
+                    <div className="w-4 h-4 rounded-full bg-muted border border-border flex items-center justify-center">
+                      <span className="text-[7px] font-semibold text-muted-foreground">{item.personName[0]}</span>
+                    </div>
+                  )}
                   <span className="text-[10px] text-muted-foreground">{item.personName}</span>
                 </div>
               </div>
