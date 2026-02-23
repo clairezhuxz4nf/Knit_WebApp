@@ -254,6 +254,10 @@ const Gems = () => {
             setFeed((prev) => prev.filter((item) => item.id !== id));
             setSelectedItem(null);
           }}
+          onUpdate={(id, updates) => {
+            setFeed((prev) => prev.map((item) => item.id === id ? { ...item, ...updates } : item));
+            setSelectedItem((prev) => prev ? { ...prev, ...updates } : null);
+          }}
         />
       )}
 
