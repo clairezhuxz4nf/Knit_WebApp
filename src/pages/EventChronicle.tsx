@@ -374,8 +374,9 @@ const EventChronicle = () => {
 
       <div className="flex-1 px-6 py-4 overflow-y-auto pb-24">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
-          <div className="flex items-center justify-center gap-4 mb-3">
+          <div className="flex flex-col items-center gap-2 mb-3">
             <YarnDecoration variant="wave" color="rose" className="w-32" />
+            <p className="text-sm text-muted-foreground text-center">What events are celebrated within your family?</p>
             <CozyButton variant="secondary" size="sm" onClick={() => setShowSettings(true)}>
               Manage Events
             </CozyButton>
