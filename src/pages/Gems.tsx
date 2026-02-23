@@ -78,17 +78,32 @@ const Gems = () => {
           .order("created_at", { ascending: false });
 
         if (storyBites) {
-          setFeed(storyBites.map((sb) => ({
-            id: sb.id,
-            type: (sb.content_type || "stories") as ContentType,
-            title: sb.title,
-            description: sb.description || "",
-            imageUrl: sb.image_url || undefined,
-            personName: sb.person_name || "Family",
-            avatarUrl: sb.avatar_url || "",
-            likes: sb.likes || 0,
-            liked: false,
-          })));
+          // Sign image URLs for private bucket
+          const feedItems: FeedItem[] = await Promise.all(storyBites.map(async (sb) => {
+            let imageUrl: string | undefined;
+            if (sb.image_url) {
+              if (sb.image_url.startsWith("http")) {
+                imageUrl = sb.image_url;
+              } else {
+                const { data: signedData } = await supabase.storage
+                  .from("family-gems")
+                  .createSignedUrl(sb.image_url, 3600);
+                imageUrl = signedData?.signedUrl || undefined;
+              }
+            }
+            return {
+              id: sb.id,
+              type: (sb.content_type || "stories") as ContentType,
+              title: sb.title,
+              description: sb.description || "",
+              imageUrl,
+              personName: sb.person_name || "Family",
+              avatarUrl: sb.avatar_url || "",
+              likes: sb.likes || 0,
+              liked: false,
+            };
+          }));
+          setFeed(feedItems);
         }
       }
       setLoadingFeed(false);
