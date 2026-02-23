@@ -97,6 +97,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Camera menu state
@@ -328,7 +329,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
           </button>
           <h2 className="font-display text-sm font-semibold text-foreground truncate mx-3">Story Bite</h2>
           <div className="flex items-center gap-1">
-            <AlertDialog>
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
                 <button className="p-1.5 rounded-full hover:bg-destructive/10 transition-colors">
                   <Trash2 className="w-4 h-4 text-destructive" />
@@ -343,11 +344,10 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
+                  <button
                       disabled={deleting}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={async (e) => {
-                        e.preventDefault();
+                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2"
+                      onClick={async () => {
                         setDeleting(true);
                         const { error } = await supabase.from("story_bites").delete().eq("id", item.id);
                         if (error) {
@@ -355,13 +355,13 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
                           setDeleting(false);
                         } else {
                           toast.success("Story bite deleted");
+                          setDeleteDialogOpen(false);
                           onDelete?.(item.id);
                           onClose();
                         }
                       }}>
-
                     {deleting ? "Deleting…" : "Delete"}
-                  </AlertDialogAction>
+                  </button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
