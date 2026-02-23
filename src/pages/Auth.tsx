@@ -15,9 +15,9 @@ const phoneSchema = z.string().min(10, "Please enter a valid phone number").rege
 const otpSchema = z.string().length(6, "Please enter the 6-digit code");
 
 // Test credentials - fallback defaults for development testing
-const TEST_ACCOUNTS: Record<string, { email: string; password: string }> = {
+const TEST_ACCOUNTS: Record<string, {email: string;password: string;}> = {
   "+15555555555": { email: "testuser@knit.app", password: "testpass123" },
-  "+15555555556": { email: "testuser2@knit.app", password: "testpass456" },
+  "+15555555556": { email: "testuser2@knit.app", password: "testpass456" }
 };
 const TEST_CODE = "123456";
 const isDevelopment = true;
@@ -26,14 +26,14 @@ const Auth = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { toast } = useToast();
-  
+
   const [step, setStep] = useState<"phone" | "verify">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isTestMode, setIsTestMode] = useState(false);
-  const [testCredentials, setTestCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [testCredentials, setTestCredentials] = useState<{email: string;password: string;} | null>(null);
   useEffect(() => {
     if (user && !loading) {
       navigate("/family-space");
@@ -56,7 +56,7 @@ const Auth = () => {
       setError(result.error.errors[0].message);
       return;
     }
-    
+
     setError(null);
     setIsSubmitting(true);
 
@@ -69,36 +69,36 @@ const Auth = () => {
         setStep("verify");
         toast({
           title: "Test Mode",
-          description: "Use code 123456 to verify.",
+          description: "Use code 123456 to verify."
         });
         setIsSubmitting(false);
         return;
       }
 
       const formattedPhone = formatPhone(phone);
-      
+
       const { error } = await supabase.auth.signInWithOtp({
-        phone: formattedPhone,
+        phone: formattedPhone
       });
 
       if (error) {
         toast({
           variant: "destructive",
           title: "Failed to send code",
-          description: error.message,
+          description: error.message
         });
       } else {
         setStep("verify");
         toast({
           title: "Code sent!",
-          description: "We've texted you a verification code.",
+          description: "We've texted you a verification code."
         });
       }
     } catch (err: any) {
       toast({
         variant: "destructive",
         title: "Something went wrong",
-        description: "Please try again later.",
+        description: "Please try again later."
       });
     } finally {
       setIsSubmitting(false);
@@ -111,7 +111,7 @@ const Auth = () => {
       setError(result.error.errors[0].message);
       return;
     }
-    
+
     setError(null);
     setIsSubmitting(true);
 
@@ -121,14 +121,14 @@ const Auth = () => {
         if (otp === TEST_CODE && testCredentials) {
           // Call edge function to ensure test user exists with correct password
           const { data: fnData, error: fnError } = await supabase.functions.invoke('test-login', {
-            body: { email: testCredentials.email, password: testCredentials.password },
+            body: { email: testCredentials.email, password: testCredentials.password }
           });
 
           if (fnError || !fnData?.success) {
             toast({
               variant: "destructive",
               title: "Test login failed",
-              description: fnError?.message || fnData?.error || "Could not set up test user",
+              description: fnError?.message || fnData?.error || "Could not set up test user"
             });
             setIsSubmitting(false);
             return;
@@ -137,14 +137,14 @@ const Auth = () => {
           // Now sign in with the corrected password
           const { error: signInError } = await supabase.auth.signInWithPassword({
             email: testCredentials.email,
-            password: testCredentials.password,
+            password: testCredentials.password
           });
 
           if (signInError) {
             toast({
               variant: "destructive",
               title: "Test login failed",
-              description: signInError.message,
+              description: signInError.message
             });
             setIsSubmitting(false);
             return;
@@ -152,7 +152,7 @@ const Auth = () => {
 
           toast({
             title: "Welcome back!",
-            description: "Test account logged in successfully.",
+            description: "Test account logged in successfully."
           });
           navigate("/family-space");
         } else {
@@ -163,23 +163,23 @@ const Auth = () => {
       }
 
       const formattedPhone = formatPhone(phone);
-      
+
       const { error } = await supabase.auth.verifyOtp({
         phone: formattedPhone,
         token: otp,
-        type: "sms",
+        type: "sms"
       });
 
       if (error) {
         toast({
           variant: "destructive",
           title: "Verification failed",
-          description: error.message,
+          description: error.message
         });
       } else {
         toast({
           title: "Welcome back!",
-          description: "You've successfully logged in.",
+          description: "You've successfully logged in."
         });
         navigate("/family-space");
       }
@@ -187,7 +187,7 @@ const Auth = () => {
       toast({
         variant: "destructive",
         title: "Something went wrong",
-        description: "Please try again later.",
+        description: "Please try again later."
       });
     } finally {
       setIsSubmitting(false);
@@ -199,21 +199,21 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/family-space`,
-        },
+          redirectTo: `${window.location.origin}/family-space`
+        }
       });
       if (error) {
         toast({
           variant: "destructive",
           title: "Google sign-in failed",
-          description: error.message,
+          description: error.message
         });
       }
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Google sign-in failed",
-        description: "An unexpected error occurred",
+        description: "An unexpected error occurred"
       });
     }
   };
@@ -222,8 +222,8 @@ const Auth = () => {
     return (
       <MobileLayout className="flex items-center justify-center" showPattern>
         <YarnDecoration variant="ball" color="rose" className="w-12 h-12 animate-pulse-soft" />
-      </MobileLayout>
-    );
+      </MobileLayout>);
+
   }
 
   return (
@@ -234,13 +234,13 @@ const Auth = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="mb-6"
-        >
+          className="mb-6">
+
           <img
             src={logo}
             alt="Knit - Family Storybook"
-            className="w-32 h-32 object-contain animate-float"
-          />
+            className="w-32 h-32 object-contain animate-float" />
+
         </motion.div>
 
         {/* Title Section */}
@@ -248,15 +248,15 @@ const Auth = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-          className="text-center mb-8"
-        >
+          className="text-center mb-8">
+
           <h1 className="font-display text-2xl font-bold text-foreground mb-2">
             {step === "phone" ? "Welcome Back" : "Enter Verification Code"}
           </h1>
           <p className="text-muted-foreground">
-            {step === "phone"
-              ? "Sign in with your phone number"
-              : isTestMode ? "Enter code 123456 to continue." : "We sent a code to your phone"}
+            {step === "phone" ?
+            "Sign in with your phone number" :
+            isTestMode ? "Enter code 123456 to continue." : "We sent a code to your phone"}
           </p>
         </motion.div>
 
@@ -265,24 +265,24 @@ const Auth = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="w-full max-w-sm space-y-4"
-        >
-          {step === "phone" ? (
-            <>
+          className="w-full max-w-sm space-y-4">
+
+          {step === "phone" ?
+          <>
               <div>
                 <CozyInput
-                  label="Phone Number"
-                  type="tel"
-                  placeholder="Enter your phone number"
-                  value={phone}
-                  onChange={(e) => {
-                    setPhone(e.target.value);
-                    setError(null);
-                  }}
-                />
-                {error && (
-                  <p className="text-destructive text-sm mt-1">{error}</p>
-                )}
+                label="Phone Number"
+                type="tel"
+                placeholder="Enter your phone number"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  setError(null);
+                }} />
+
+                {error &&
+              <p className="text-destructive text-sm mt-1">{error}</p>
+              }
               </div>
 
               <p className="text-sm text-muted-foreground text-center">
@@ -290,21 +290,21 @@ const Auth = () => {
               </p>
 
               <CozyButton
-                variant="primary"
-                size="lg"
-                fullWidth
-                onClick={handleSendCode}
-                disabled={isSubmitting || phone.trim().length < 10}
-              >
+              variant="primary"
+              size="lg"
+              fullWidth
+              onClick={handleSendCode}
+              disabled={isSubmitting || phone.trim().length < 10}>
+
                 {isSubmitting ? "Sending..." : "Send Code"}
               </CozyButton>
 
               {/* Test mode hint - only in development */}
-              {isDevelopment && (
-                <p className="text-xs text-muted-foreground text-center">
-                  Test: +15555555555 or +15555555556
-                </p>
-              )}
+              {isDevelopment
+
+
+
+            }
 
               {/* Divider */}
               <div className="relative my-2">
@@ -318,91 +318,91 @@ const Auth = () => {
 
               {/* Google Sign In */}
               <CozyButton
-                variant="outline"
-                size="lg"
-                fullWidth
-                type="button"
-                onClick={handleGoogleSignIn}
-              >
+              variant="outline"
+              size="lg"
+              fullWidth
+              type="button"
+              onClick={handleGoogleSignIn}>
+
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path
-                    fill="currentColor"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
+                  fill="currentColor"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+
                   <path
-                    fill="currentColor"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
+                  fill="currentColor"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+
                   <path
-                    fill="currentColor"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
+                  fill="currentColor"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+
                   <path
-                    fill="currentColor"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
+                  fill="currentColor"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+
                 </svg>
                 Continue with Google
               </CozyButton>
-            </>
-          ) : (
-            <>
+            </> :
+
+          <>
               <div>
                 <CozyInput
-                  label="Verification Code"
-                  type="text"
-                  placeholder="Enter 6-digit code"
-                  value={otp}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
-                    setOtp(value);
-                    setError(null);
-                  }}
-                  maxLength={6}
-                />
-                {error && (
-                  <p className="text-destructive text-sm mt-1">{error}</p>
-                )}
+                label="Verification Code"
+                type="text"
+                placeholder="Enter 6-digit code"
+                value={otp}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                  setOtp(value);
+                  setError(null);
+                }}
+                maxLength={6} />
+
+                {error &&
+              <p className="text-destructive text-sm mt-1">{error}</p>
+              }
               </div>
 
               <button
-                onClick={handleSendCode}
-                className="text-sm text-primary hover:underline w-full text-center"
-                disabled={isSubmitting}
-              >
+              onClick={handleSendCode}
+              className="text-sm text-primary hover:underline w-full text-center"
+              disabled={isSubmitting}>
+
                 Resend code
               </button>
 
               <CozyButton
-                variant="primary"
-                size="lg"
-                fullWidth
-                onClick={handleVerifyCode}
-                disabled={isSubmitting || otp.length !== 6}
-              >
+              variant="primary"
+              size="lg"
+              fullWidth
+              onClick={handleVerifyCode}
+              disabled={isSubmitting || otp.length !== 6}>
+
                 {isSubmitting ? "Verifying..." : "Verify & Sign In"}
               </CozyButton>
 
               <button
-                onClick={() => {
-                  setStep("phone");
-                  setOtp("");
-                  setError(null);
-                  setIsTestMode(false);
-                }}
-                className="text-sm text-muted-foreground hover:text-foreground w-full text-center"
-              >
+              onClick={() => {
+                setStep("phone");
+                setOtp("");
+                setError(null);
+                setIsTestMode(false);
+              }}
+              className="text-sm text-muted-foreground hover:text-foreground w-full text-center">
+
                 Use a different phone number
               </button>
             </>
-          )}
+          }
 
           <p className="text-sm text-muted-foreground text-center pt-4">
             Don't have an account?{" "}
             <button
               onClick={() => navigate("/phone-signup")}
-              className="text-primary font-medium hover:underline"
-            >
+              className="text-primary font-medium hover:underline">
+
               Sign up
             </button>
           </p>
@@ -414,14 +414,14 @@ const Auth = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 0.5 }}
-        className="pb-8 flex justify-center gap-3"
-      >
+        className="pb-8 flex justify-center gap-3">
+
         <YarnDecoration variant="ball" color="rose" className="w-6 h-6" />
         <YarnDecoration variant="ball" color="sage" className="w-6 h-6" />
         <YarnDecoration variant="ball" color="butter" className="w-6 h-6" />
       </motion.div>
-    </MobileLayout>
-  );
+    </MobileLayout>);
+
 };
 
 export default Auth;
