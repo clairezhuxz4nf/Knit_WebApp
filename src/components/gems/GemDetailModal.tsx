@@ -346,7 +346,8 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
                   <AlertDialogAction
                       disabled={deleting}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.preventDefault();
                         setDeleting(true);
                         const { error } = await supabase.from("story_bites").delete().eq("id", item.id);
                         if (error) {
