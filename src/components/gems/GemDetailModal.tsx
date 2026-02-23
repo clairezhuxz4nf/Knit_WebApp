@@ -118,7 +118,9 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
   const [showAudioBar, setShowAudioBar] = useState(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
-  const [photos, setPhotos] = useState<string[]>(item.imageUrl ? [item.imageUrl] : []);
+  const [photos, setPhotos] = useState<{ url: string; photoId?: string; isOriginal?: boolean }[]>(
+    item.imageUrl ? [{ url: item.imageUrl, isOriginal: true }] : []
+  );
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -141,26 +143,45 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
         .order("sort_order", { ascending: true });
 
       if (links && links.length > 0) {
-        const signedUrls = await Promise.all(
+        const linkedPhotos = await Promise.all(
           links.map(async (link: any) => {
             const filePath = link.family_photos?.file_path;
             if (!filePath) return null;
             const { data } = await supabase.storage
               .from("family-gems")
               .createSignedUrl(filePath, 3600);
-            return data?.signedUrl || null;
+            return data?.signedUrl ? { url: data.signedUrl, photoId: link.photo_id } : null;
           })
         );
-        const validUrls = signedUrls.filter(Boolean) as string[];
-        if (validUrls.length > 0) {
-          // Combine: original image (if any) + linked photos
-          const base = item.imageUrl ? [item.imageUrl] : [];
-          setPhotos([...base, ...validUrls]);
+        const valid = linkedPhotos.filter(Boolean) as { url: string; photoId: string }[];
+        if (valid.length > 0) {
+          const base = item.imageUrl ? [{ url: item.imageUrl, isOriginal: true }] : [];
+          setPhotos([...base, ...valid]);
         }
       }
     };
     loadLinkedPhotos();
   }, [item.id]);
+
+  const handleRemovePhoto = async (index: number) => {
+    const photo = photos[index];
+    if (photo.photoId) {
+      const { error } = await supabase
+        .from("story_bite_photos")
+        .delete()
+        .eq("story_bite_id", item.id)
+        .eq("photo_id", photo.photoId);
+      if (error) {
+        toast.error("Failed to remove photo");
+        return;
+      }
+    }
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    if (currentPhotoIndex >= photos.length - 1 && currentPhotoIndex > 0) {
+      setCurrentPhotoIndex(currentPhotoIndex - 1);
+    }
+    toast.success("Photo removed");
+  };
 
   const audioDuration = 185;
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -174,8 +195,8 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const newUrls = Array.from(files).map((f) => URL.createObjectURL(f));
-    setPhotos((prev) => [...prev, ...newUrls]);
+    const newItems = Array.from(files).map((f) => ({ url: URL.createObjectURL(f) }));
+    setPhotos((prev) => [...prev, ...newItems]);
   };
 
   const handleSwipe = (dir: "left" | "right") => {
@@ -350,7 +371,7 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
               }}
             >
               {photos.length > 0 ? (
-                <img src={photos[currentPhotoIndex]} alt={item.title} className="w-full h-full object-cover" />
+                <img src={photos[currentPhotoIndex].url} alt={item.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                   <span className="text-3xl">
@@ -368,6 +389,17 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
               {photos.length > 1 && currentPhotoIndex < photos.length - 1 && (
                 <button onClick={() => handleSwipe("left")} className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/70 backdrop-blur-sm rounded-full p-1 hover:bg-background/90 transition-colors">
                   <ChevronRight className="w-4 h-4 text-foreground" />
+                </button>
+              )}
+
+              {/* Remove photo button — only for linked (non-original) photos */}
+              {photos.length > 0 && !photos[currentPhotoIndex].isOriginal && (
+                <button
+                  onClick={() => handleRemovePhoto(currentPhotoIndex)}
+                  className="absolute top-2 left-2 bg-destructive/80 backdrop-blur-sm rounded-full p-1.5 hover:bg-destructive transition-colors"
+                  title="Remove photo"
+                >
+                  <X className="w-3.5 h-3.5 text-destructive-foreground" />
                 </button>
               )}
 
