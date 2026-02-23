@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Camera, Mic, Square, Play, Pause, Loader2, ImagePlus,
@@ -42,8 +42,10 @@ const formatTimer = (seconds: number) => {
 
 const CreateStoryBite = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const coverPhotoUrl = (location.state as any)?.coverPhotoUrl as string | undefined;
+  const [imagePreview, setImagePreview] = useState<string | null>(coverPhotoUrl || null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -157,6 +159,17 @@ const CreateStoryBite = () => {
           .upload(filePath, imageFile);
         if (!uploadError) {
           imageUrl = filePath;
+        }
+      } else if (imagePreview && coverPhotoUrl) {
+        // Cover photo is already a signed URL from storage; store the original path
+        // Fetch the original cover_photo_url path from the family space
+        const { data: spaceData } = await supabase
+          .from("family_spaces")
+          .select("cover_photo_url")
+          .eq("id", memberData.family_space_id)
+          .single();
+        if (spaceData?.cover_photo_url) {
+          imageUrl = spaceData.cover_photo_url;
         }
       }
 
