@@ -18,21 +18,38 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Require admin secret for authentication
+  // Allow either ADMIN_SECRET or valid Supabase anon/user JWT
   const authHeader = req.headers.get('Authorization');
   const adminSecret = Deno.env.get('ADMIN_SECRET');
-  if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  const isAdminAuth = adminSecret && authHeader === `Bearer ${adminSecret}`;
+  
+  // If not admin, verify it's a valid Supabase JWT (anon key or user token)
+  if (!isAdminAuth) {
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const token = authHeader?.replace('Bearer ', '');
+    // Accept anon key or verify as user JWT
+    if (token !== supabaseAnonKey) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const checkClient = createClient(supabaseUrl, supabaseAnonKey!, {
+        global: { headers: { Authorization: authHeader! } }
+      });
+      const { error: claimsError } = await checkClient.auth.getUser(token);
+      if (claimsError) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
   }
 
   try {
     const { email, password } = await req.json();
     
-    if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Email and password required' }), {
+    // Only allow known test emails
+    const allowedTestEmails = ['testuser@knit.app', 'testuser2@knit.app', 'will@knit.app'];
+    if (!email || !password || !allowedTestEmails.includes(email)) {
+      return new Response(JSON.stringify({ error: 'Invalid test credentials' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -156,7 +173,6 @@ Deno.serve(async (req) => {
       success: true,
       userId,
       email,
-      password,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
