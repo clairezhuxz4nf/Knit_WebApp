@@ -127,7 +127,7 @@ const Family = () => {
         }} animate={{
           opacity: 1,
           y: 0
-        }} className="font-display text-2xl font-bold text-secondary-foreground">
+        }} className="font-display text-2xl font-bold text-teal-800">
             {familySpace?.name || "Your Family"} Tree
           </motion.h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -193,11 +193,11 @@ const Family = () => {
             return <CozyCard key={person.id} className="py-3 cursor-pointer hover:shadow-cozy transition-all" onClick={() => handleEditPerson(person)}>
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden text-primary-foreground font-semibold ${person.status === 'active' ? index % 4 === 0 ? "bg-primary" : index % 4 === 1 ? "bg-secondary" : index % 4 === 2 ? "bg-accent text-accent-foreground" : "bg-teal text-teal-foreground" : "bg-muted text-muted-foreground"}`}>
-                        {person.avatar_url ? (
-                          <img src={person.avatar_url} alt={fullName} className="w-full h-full object-cover" />
-                        ) : (
-                          person.first_name[0].toUpperCase()
-                        )}
+                        {person.avatar_url ?
+                  <img src={person.avatar_url} alt={fullName} className="w-full h-full object-cover" /> :
+
+                  person.first_name[0].toUpperCase()
+                  }
                       </div>
                       <div className="flex-1">
                         <p className="font-medium text-foreground">
