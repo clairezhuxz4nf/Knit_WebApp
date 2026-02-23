@@ -10,6 +10,16 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Require admin secret for authentication
+  const authHeader = req.headers.get('Authorization');
+  const adminSecret = Deno.env.get('ADMIN_SECRET');
+  if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const { email, password } = await req.json();
     
