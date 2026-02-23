@@ -10,6 +10,14 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Block in production
+  if (Deno.env.get('ENVIRONMENT') === 'production') {
+    return new Response(JSON.stringify({ error: 'Not available in production' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   // Require admin secret for authentication
   const authHeader = req.headers.get('Authorization');
   const adminSecret = Deno.env.get('ADMIN_SECRET');
