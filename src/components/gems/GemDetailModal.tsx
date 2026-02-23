@@ -346,16 +346,24 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
                   <AlertDialogAction
                       disabled={deleting}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.preventDefault();
                         setDeleting(true);
-                        const { error } = await supabase.from("story_bites").delete().eq("id", item.id);
-                        if (error) {
-                          toast.error("Failed to delete story bite");
-                          setDeleting(false);
-                        } else {
-                          toast.success("Story bite deleted");
+                        try {
+                          // Delete related records first
+                          await supabase.from("storybooks").delete().eq("story_bite_id", item.id);
+                          await supabase.from("story_bite_comments").delete().eq("story_bite_id", item.id);
+                          await supabase.from("story_bite_likes").delete().eq("story_bite_id", item.id);
+                          await supabase.from("story_bite_photos").delete().eq("story_bite_id", item.id);
+                          const { error } = await supabase.from("story_bites").delete().eq("id", item.id);
+                          if (error) throw error;
+                          toast.success("Story bite deleted for all family members");
                           onDelete?.(item.id);
                           onClose();
+                        } catch (err) {
+                          console.error("Delete failed:", err);
+                          toast.error("Failed to delete story bite");
+                          setDeleting(false);
                         }
                       }}>
 
