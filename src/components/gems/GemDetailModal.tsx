@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight, Trash2, Pencil, Check } from "lucide-react";
+import { Heart, X, Send, Mic, MicOff, Camera, Volume2, Play, MessageCircle, BookOpen, Pause, ChevronLeft, ChevronRight, Trash2, Pencil, Check, Upload, Image } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,6 +102,7 @@ const AudioBubble = ({ duration, isPlaying, onPlay }: { duration: string; isPlay
 );
 
 const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: GemDetailProps) => {
+  const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>(sampleComments);
   const [newComment, setNewComment] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -122,9 +124,43 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Camera menu state
+  const [showCameraMenu, setShowCameraMenu] = useState(false);
+
   // Comic overlay state
   const [showComic, setShowComic] = useState(false);
   const hasComic = item.title === COMIC_STORY_TITLE;
+
+  // Load linked photos from junction table
+  useEffect(() => {
+    const loadLinkedPhotos = async () => {
+      const { data: links } = await supabase
+        .from("story_bite_photos")
+        .select("photo_id, sort_order, family_photos(file_path)")
+        .eq("story_bite_id", item.id)
+        .order("sort_order", { ascending: true });
+
+      if (links && links.length > 0) {
+        const signedUrls = await Promise.all(
+          links.map(async (link: any) => {
+            const filePath = link.family_photos?.file_path;
+            if (!filePath) return null;
+            const { data } = await supabase.storage
+              .from("family-gems")
+              .createSignedUrl(filePath, 3600);
+            return data?.signedUrl || null;
+          })
+        );
+        const validUrls = signedUrls.filter(Boolean) as string[];
+        if (validUrls.length > 0) {
+          // Combine: original image (if any) + linked photos
+          const base = item.imageUrl ? [item.imageUrl] : [];
+          setPhotos([...base, ...validUrls]);
+        }
+      }
+    };
+    loadLinkedPhotos();
+  }, [item.id]);
 
   const audioDuration = 185;
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -352,12 +388,42 @@ const GemDetailModal = ({ item, onClose, onToggleLike, onDelete, onUpdate }: Gem
                 >
                   <Volume2 className="w-3.5 h-3.5" />
                 </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-background/70 backdrop-blur-sm rounded-full p-1.5 hover:bg-background/90 transition-colors text-foreground"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowCameraMenu(!showCameraMenu)}
+                    className="bg-background/70 backdrop-blur-sm rounded-full p-1.5 hover:bg-background/90 transition-colors text-foreground"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
+                  {showCameraMenu && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowCameraMenu(false)} />
+                      <div className="absolute bottom-full right-0 mb-1.5 z-20 bg-card border border-border rounded-xl shadow-lg overflow-hidden min-w-[160px]">
+                        <button
+                          onClick={() => {
+                            setShowCameraMenu(false);
+                            navigate(`/select-photo?storyBiteId=${item.id}`);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                        >
+                          <Image className="w-4 h-4 text-muted-foreground" />
+                          Choose from collection
+                        </button>
+                        <div className="h-px bg-border" />
+                        <button
+                          onClick={() => {
+                            setShowCameraMenu(false);
+                            fileInputRef.current?.click();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+                        >
+                          <Upload className="w-4 h-4 text-muted-foreground" />
+                          Upload new
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
                 <button
                   onClick={() => hasComic && setShowComic(true)}
                   className={`backdrop-blur-sm rounded-full p-1.5 transition-colors ${hasComic ? "bg-background/70 hover:bg-background/90 text-foreground" : "bg-background/40 text-muted-foreground/50 cursor-default"}`}

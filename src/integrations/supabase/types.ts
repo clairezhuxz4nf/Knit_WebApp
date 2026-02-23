@@ -442,6 +442,45 @@ export type Database = {
           },
         ]
       }
+      story_bite_photos: {
+        Row: {
+          created_at: string
+          id: string
+          photo_id: string
+          sort_order: number
+          story_bite_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          photo_id: string
+          sort_order?: number
+          story_bite_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          photo_id?: string
+          sort_order?: number
+          story_bite_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_bite_photos_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "family_photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_bite_photos_story_bite_id_fkey"
+            columns: ["story_bite_id"]
+            isOneToOne: false
+            referencedRelation: "story_bites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_bites: {
         Row: {
           audio_url: string | null
