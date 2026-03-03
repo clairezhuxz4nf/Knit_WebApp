@@ -14,13 +14,13 @@ import logo from "@/assets/logo.png";
 const phoneSchema = z.string().min(10, "Please enter a valid phone number").regex(/^\+?[0-9\s-()]+$/, "Please enter a valid phone number");
 const otpSchema = z.string().length(6, "Please enter the 6-digit code");
 
-// Test credentials - fallback defaults for development testing
-const TEST_ACCOUNTS: Record<string, {email: string;password: string;}> = {
-  "+15555555555": { email: "testuser@knit.app", password: "testpass123" },
-  "+15555555556": { email: "testuser2@knit.app", password: "testpass456" }
-};
+// Test credentials - only available in development builds
+const TEST_ACCOUNTS: Record<string, {email: string; password: string;}> = import.meta.env.DEV ? {
+  "+15555555555": { email: import.meta.env.VITE_TEST_EMAIL || "", password: import.meta.env.VITE_TEST_PASSWORD || "" },
+  "+15555555556": { email: import.meta.env.VITE_TEST_EMAIL2 || "", password: import.meta.env.VITE_TEST_PASSWORD2 || "" }
+} : {};
 const TEST_CODE = "123456";
-const isDevelopment = true;
+const isDevelopment = import.meta.env.DEV;
 
 const Auth = () => {
   const navigate = useNavigate();
